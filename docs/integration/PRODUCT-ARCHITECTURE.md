@@ -1,5 +1,7 @@
 # Design
 
+> 业务接入参考：本文从 `dress/architecture.md` 迁移，描述 SDK 与业务服务、相机帧和私人资产的边界。产品仓库中的 `Agent.md` 等路径仍以 `dress` 为来源。
+
 ## Context
 
 动机见 proposal.md。仓库里还没有小程序或服务端代码。试衣的运行约定已经写在 `Agent.md`：uni-app 微信小程序、一个 NestJS 业务服务、PostgreSQL、Redis 与 BullMQ、对象存储；换装走外部 API，密钥只在服务端，任务异步，图片按用途授权。`design-tryon-decision-mvp` 把供应商合同留到接入评估，不在这里重开。
