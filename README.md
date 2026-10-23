@@ -16,6 +16,8 @@ examples/             本地示例
 docs/                 架构与开发说明
 ```
 
+文档入口见 [`docs/README.md`](docs/README.md)，其中包含重写规格、业务接入边界和从 `dress` 迁移的交接资料。
+
 ## 构建 smoke test
 
 ```bash
