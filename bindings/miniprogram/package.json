@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "build:manifest": "node scripts/build-manifest.mjs dist/makeup_sdk_core.wasm dist/manifest.json"
   }
 }

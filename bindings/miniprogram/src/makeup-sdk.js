@@ -1,53 +1,6 @@
-export const STATUS = Object.freeze({
-  OK: 0,
-  INVALID_ARGUMENT: 1,
-  INVALID_STATE: 2,
-  NOT_INITIALIZED: 3,
-  UNSUPPORTED_EFFECT: 4,
-  NO_FACE: 5,
-  MULTIPLE_FACES: 6,
-  NO_FRAME: 7,
-  CAPTURE_FAILED: 8,
-  OPERATION_CANCELLED: 9,
-  DISPOSED: 10,
-  INTERNAL_ERROR: 11,
-  NO_EVENT: 12,
-  FRAME_INVALID: 13,
-  RENDERER_UNAVAILABLE: 14,
-  CAMERA_PERMISSION_DENIED: 15,
-  TRACKER_UNAVAILABLE: 16,
-  MODEL_LOAD_FAILED: 17,
-  ASSET_LOAD_FAILED: 18,
-  GPU_CONTEXT_LOST: 19
-});
-
-export const STATE = Object.freeze({
-  IDLE: 'idle',
-  LOADING: 'loading',
-  READY: 'ready',
-  TRACKING: 'tracking',
-  RENDERING: 'rendering',
-  CAPTURED: 'captured',
-  UNSUPPORTED: 'unsupported',
-  ERROR: 'error',
-  DISPOSED: 'disposed'
-});
-
-export const EFFECT = Object.freeze({
-  LIPSTICK: 'lipstick',
-  MASCARA: 'mascara',
-  EYELINER: 'eyeliner',
-  EYESHADOW: 'eyeshadow',
-  BLUSH: 'blush',
-  FOUNDATION: 'foundation'
-});
-
-export const FINISH = Object.freeze({
-  MATTE: 'matte',
-  GLOSSY: 'glossy',
-  SHIMMER: 'shimmer',
-  GLITTER: 'glitter'
-});
+import { loadWasmCore } from './wasm-loader.js';
+import { EFFECT, FINISH, SdkError, STATE, STATUS } from './constants.js';
+export { EFFECT, FINISH, SdkError, STATE, STATUS } from './constants.js';
 
 const EFFECTS = Object.values(EFFECT);
 
@@ -55,15 +8,6 @@ export function normalizeFinish(finish) {
   if (finish === 'dewy') return FINISH.GLOSSY;
   if (Object.values(FINISH).includes(finish)) return finish;
   throw new SdkError(STATUS.INVALID_ARGUMENT, `Unsupported finish: ${finish}`);
-}
-
-export class SdkError extends Error {
-  constructor(status, message, details = undefined) {
-    super(message);
-    this.name = 'MakeupSdkError';
-    this.status = status;
-    this.details = details;
-  }
 }
 
 function assertStatus(status, message) {
@@ -153,6 +97,9 @@ export class TsJsCore {
       sdkVersion: this.sdkVersion,
       apiVersion: 2,
       manifestVersion: this.manifestVersion,
+      wasmVersion: null,
+      wasmSha256: null,
+      wasmLoadStatus: 'not_attempted',
       rendererBackend: overrides.rendererBackend ?? 'unavailable',
       trackerBackend: overrides.trackerBackend ?? 'unavailable',
       maxFrameWidth: this.maxFrameWidth,
@@ -209,6 +156,17 @@ export class MakeupSdkSession {
       assertStatus(await this.resources.loadManifest(this.core.manifestVersion), 'Manifest load failed');
       assertStatus(await this.tracker.initialize(this.options.trackerVersion ?? 1), 'Tracker initialization failed');
       assertStatus(await this.renderer.initialize(this.options.rendererVersion ?? 1), 'Renderer initialization failed');
+      const supportsEffects = Object.fromEntries(EFFECTS.map((effect) => [effect, effect === EFFECT.LIPSTICK]));
+      this.core.configureCapabilities?.({
+        rendererVersion: this.options.rendererVersion ?? 1,
+        trackerVersion: this.options.trackerVersion ?? 1,
+        cameraAvailable: true,
+        trackerAvailable: true,
+        rendererAvailable: true,
+        supportsEffects
+      });
+      assertStatus(await this.core.initialize?.() ?? STATUS.OK,
+        'Core initialization failed');
       this.capabilityReport = {
         ...this.core.capabilities({
           rendererBackend: this.options.rendererBackend ?? 'webgl',
@@ -217,7 +175,7 @@ export class MakeupSdkSession {
         cameraAvailable: true,
         trackerAvailable: true,
         rendererAvailable: true,
-        supportsEffects: Object.fromEntries(EFFECTS.map((effect) => [effect, effect === EFFECT.LIPSTICK])),
+        supportsEffects,
         knownLimitations: ['Only lipstick is enabled in the first renderer milestone.']
       };
       this.initialized = true;
@@ -233,11 +191,13 @@ export class MakeupSdkSession {
     this.ensureInitialized();
     if (this.started) throw new SdkError(STATUS.INVALID_STATE, 'Session already started');
     assertStatus(await this.tracker.reset(), 'Tracker reset failed');
+    assertStatus(await this.core.start?.() ?? STATUS.OK, 'Core start failed');
     this.started = true;
     try {
       assertStatus(await this.camera.start((frame) => this.#onFrame(frame)), 'Camera start failed');
     } catch (error) {
       this.started = false;
+      await this.core.stop?.();
       throw error;
     }
     this.setState(STATE.TRACKING);
@@ -262,6 +222,8 @@ export class MakeupSdkSession {
     if (this.generation.get(params.category) !== generation || this.disposed) {
       throw new SdkError(STATUS.OPERATION_CANCELLED, 'A newer effect operation superseded this one');
     }
+    assertStatus(await this.core.apply?.({ ...params, finish }) ?? STATUS.OK,
+      'Core effect application failed');
     this.core.layers.set(params.category, { ...params, finish });
     this.emit('effect', { category: params.category, params: { ...params, finish } });
     return { status: STATUS.OK, params: { ...params, finish } };
@@ -269,12 +231,14 @@ export class MakeupSdkSession {
 
   async clear(category) {
     this.ensureInitialized();
+    assertStatus(await this.core.clear?.(category) ?? STATUS.OK, 'Core effect clear failed');
     this.core.layers.delete(category);
     return { status: STATUS.OK, category };
   }
 
   async clearAll() {
     this.ensureInitialized();
+    assertStatus(await this.core.clearAll?.() ?? STATUS.OK, 'Core clearAll failed');
     this.core.layers.clear();
     return { status: STATUS.OK };
   }
@@ -284,6 +248,7 @@ export class MakeupSdkSession {
     if (!this.core.lastFrame) throw new SdkError(STATUS.NO_FRAME, 'No valid rendered frame');
     const capture = await this.renderer.capture();
     if (!capture) throw new SdkError(STATUS.CAPTURE_FAILED, 'Renderer did not return a capture');
+    assertStatus(await this.core.capture?.() ?? STATUS.OK, 'Core capture failed');
     this.setState(STATE.CAPTURED);
     return {
       ...capture,
@@ -306,6 +271,7 @@ export class MakeupSdkSession {
     if (!this.started) return;
     assertStatus(await this.camera.stop(), 'Camera stop failed');
     assertStatus(await this.tracker.reset(), 'Tracker reset failed');
+    assertStatus(await this.core.stop?.() ?? STATUS.OK, 'Core stop failed');
     this.started = false;
     this.setState(STATE.READY);
   }
@@ -318,6 +284,7 @@ export class MakeupSdkSession {
       await this.tracker.dispose();
       await this.resources.release(this.core.manifestVersion);
     }
+    await this.core.dispose?.();
     this.started = false;
     this.initialized = false;
     this.disposed = true;
@@ -351,6 +318,8 @@ export class MakeupSdkSession {
       if (tracking.timestampNs !== undefined && BigInt(tracking.timestampNs) !== frame.timestampNs) {
         throw new SdkError(STATUS.FRAME_INVALID, 'Tracking result does not match frame timestamp');
       }
+      assertStatus(await this.core.submitFrame?.(frame, tracking) ?? STATUS.OK,
+        'Core frame submission failed');
       this.core.lastFrame = frame;
       this.core.lastTracking = tracking;
       this.setState(STATE.RENDERING);
@@ -366,11 +335,24 @@ export async function create(options = {}) {
   let runtime = options.runtime ?? 'auto';
   let core = options.core;
   let fallbackReason;
-  if (!core && runtime !== 'ts-js' && typeof options.wasmFactory === 'function') {
+  let wasmLoadStatus = 'not_attempted';
+  if (!core && runtime !== 'ts-js') {
     try {
-      core = await options.wasmFactory(options);
-      runtime = 'wasm';
+      if (typeof options.wasmFactory === 'function') {
+        core = await options.wasmFactory(options);
+      } else if (options.wasmUrl || options.wasmManifest || options.wasmManifestUrl || options.wasmLoader) {
+        core = await loadWasmCore(options);
+      } else if (runtime === 'wasm') {
+        throw new SdkError(STATUS.INTERNAL_ERROR,
+          'WASM runtime requires wasmUrl, wasmManifest or wasmFactory',
+          { code: 'WASM_CONFIGURATION_REQUIRED' });
+      }
+      if (core) {
+        runtime = 'wasm';
+        wasmLoadStatus = 'loaded';
+      }
     } catch (error) {
+      wasmLoadStatus = 'failed';
       if (runtime === 'wasm') throw error;
       runtime = 'ts-js';
       fallbackReason = String(error?.message ?? error);
@@ -382,6 +364,9 @@ export async function create(options = {}) {
   }
   const session = new MakeupSdkSession({ ...options, core, runtime });
   session.capabilityReport.runtime = runtime;
+  session.capabilityReport.wasmLoadStatus = core?.wasmLoadStatus ?? wasmLoadStatus;
+  session.capabilityReport.wasmVersion = core?.wasmVersion ?? null;
+  session.capabilityReport.wasmSha256 = core?.wasmSha256 ?? null;
   if (fallbackReason) {
     session.capabilityReport.knownLimitations = [
       ...session.capabilityReport.knownLimitations,

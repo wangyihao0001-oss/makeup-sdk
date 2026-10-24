@@ -54,3 +54,37 @@ export function createWechatResourcePort({ loadManifest, loadPattern, release, p
     probe: () => probe?.() ?? (typeof loadManifest === 'function' && typeof loadPattern === 'function')
   };
 }
+
+export function createWechatWasmLoader({ downloadFile, readFile } = {}) {
+  return async ({ url }) => {
+    if (typeof readFile === 'function' && !/^https?:\/\//i.test(url)) {
+      const result = await readFile(url);
+      return result?.data ?? result;
+    }
+    if (typeof downloadFile !== 'function') {
+      throw new SdkError(STATUS.ASSET_LOAD_FAILED,
+        'A WeChat downloadFile callback is required for remote WASM artifacts');
+    }
+    const result = await downloadFile(url);
+    if (result?.statusCode !== undefined && result.statusCode !== 200) {
+      throw new SdkError(STATUS.ASSET_LOAD_FAILED,
+        `WASM download failed with status ${result.statusCode}`);
+    }
+    return result?.data ?? result;
+  };
+}
+
+export function createWechatWasmManifestLoader({ downloadFile, readFile } = {}) {
+  const loadBytes = createWechatWasmLoader({ downloadFile, readFile });
+  return async ({ url }) => {
+    const bytes = await loadBytes({ url });
+    if (typeof bytes === 'string') return JSON.parse(bytes);
+    if (bytes instanceof ArrayBuffer) {
+      return JSON.parse(new TextDecoder().decode(new Uint8Array(bytes)));
+    }
+    if (ArrayBuffer.isView(bytes)) {
+      return JSON.parse(new TextDecoder().decode(bytes));
+    }
+    return bytes;
+  };
+}

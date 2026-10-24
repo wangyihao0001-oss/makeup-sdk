@@ -1,0 +1,31 @@
+{
+  "sdkVersion": "0.1.0",
+  "apiVersion": 2,
+  "wasmVersion": "0.1.0-wasm1",
+  "manifestVersion": 1,
+  "artifact": "makeup_sdk_core.wasm",
+  "size": 86571,
+  "sha256": "e3170fadf26dfa3a20d553aeb2f88a6e2469c6a3e640522170f89a7c82b2f429",
+  "exports": [
+    "mk2_wasm_api_version",
+    "mk2_wasm_create",
+    "mk2_wasm_destroy",
+    "mk2_wasm_bind_capabilities",
+    "mk2_wasm_initialize",
+    "mk2_wasm_start",
+    "mk2_wasm_stop",
+    "mk2_wasm_dispose",
+    "mk2_wasm_apply",
+    "mk2_wasm_clear",
+    "mk2_wasm_clear_all",
+    "mk2_wasm_submit_frame",
+    "mk2_wasm_capture",
+    "mk2_wasm_pump",
+    "mk2_wasm_poll_event",
+    "mk2_wasm_get_state",
+    "mk2_wasm_get_capabilities",
+    "mk2_wasm_get_layer",
+    "mk2_wasm_alloc",
+    "mk2_wasm_free"
+  ]
+}

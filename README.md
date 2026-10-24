@@ -2,7 +2,7 @@
 
 面向 Android、iOS 和小程序的通用试妆 SDK 重写项目。
 
-当前版本是第一阶段骨架：共享核心使用 C++17 编写，通过稳定的 C ABI 对外提供生命周期、能力查询和妆容参数接口。摄像头采集、人脸关键点、GPU 渲染和平台绑定会在后续迭代中分别实现。
+当前版本包含 C++17 共享核心、稳定 C ABI、standalone WASM 构建和小程序 JS/TS binding。摄像头采集、人脸关键点和平台 GPU 对象仍由各端口注入。
 
 ## 目录
 
@@ -26,6 +26,15 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
+WASM 构建需要 Emscripten，并生成 `bindings/miniprogram/dist/` 下的
+`makeup_sdk_core.wasm` 和 `manifest.json`：
+
+```bash
+emcmake cmake -S . -B build-wasm -DMAKEUP_BUILD_WASM=ON
+cmake --build build-wasm
+npm --prefix bindings/miniprogram test
+```
+
 共享核心 v2 的宿主驱动状态机和回归测试会同时构建为
 `makeup_sdk_core_v2_test`。v2 使用 `mk2_` 前缀与现有 v1 C ABI 共存；平台绑定
 通过 `pump()` 驱动操作队列，并通过事件队列读取状态和操作结果。
@@ -41,7 +50,8 @@ v2 的 C++ 端口契约位于 `core/include/makeup_sdk/makeup_sdk_v2_ports.h`，
 
 `core/include/makeup_sdk/makeup_sdk_v2_runtime.h` 提供 C++ 端口编排、catalog、资源
 版本校验和 `dewy → glossy` 质感归一化。小程序 binding 已提供同语义的 TS/JS fallback
-和 WASM 工厂入口；绑定自身不会伪造真机能力，只有真实端口全部初始化后才报告口红可用。
+和可校验的 WASM loader；`runtime: 'auto'` 在 WASM 加载失败时记录原因并降级 TS/JS，
+`runtime: 'wasm'` 会直接返回加载错误。只有真实端口全部初始化后才报告口红可用。
 
 ## 当前边界
 

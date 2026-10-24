@@ -19,9 +19,35 @@ export interface TrackingResult {
   landmarks?: { lips?: Array<{ x: number; y: number }> };
 }
 
+export interface WasmManifest {
+  sdkVersion: string;
+  apiVersion: number;
+  wasmVersion: string;
+  manifestVersion: number;
+  artifact: string;
+  size: number;
+  sha256: string;
+  exports: string[];
+}
+
+export interface WasmLoadRequest {
+  url: string;
+  manifest: WasmManifest;
+  options: MakeupSdkOptions;
+}
+
 export interface MakeupSdkOptions {
   runtime?: RuntimeMode;
   wasmFactory?: (options: MakeupSdkOptions) => Promise<unknown>;
+  wasmUrl?: string;
+  wasmManifest?: WasmManifest | string;
+  wasmManifestUrl?: string;
+  wasmLoader?: (request: WasmLoadRequest) => Promise<ArrayBuffer | ArrayBufferView>;
+  wasmManifestLoader?: (request: { url: string; options: MakeupSdkOptions }) => Promise<WasmManifest | string>;
+  wasmSha256?: string;
+  wasmVersion?: string;
+  sha256?: (bytes: ArrayBuffer) => Promise<string> | string;
+  wasmImports?: WebAssembly.Imports;
   camera: { start(callback: (frame: MakeupFrame) => void): Promise<number>; stop(): Promise<number> };
   tracker: { initialize(version: number): Promise<number>; estimate(frame: MakeupFrame): Promise<TrackingResult>; reset(): Promise<number>; dispose(): Promise<number> };
   renderer: { initialize(version: number): Promise<number>; render(frame: MakeupFrame, tracking: TrackingResult, layers: Record<string, unknown>): Promise<number>; capture(): Promise<unknown>; dispose(): Promise<number> };
@@ -31,3 +57,5 @@ export interface MakeupSdkOptions {
 export function create(options: MakeupSdkOptions): Promise<unknown>;
 export function normalizeFinish(finish: Finish): Exclude<Finish, 'dewy'>;
 export function runMiniProgramProbe(options: MakeupSdkOptions & { device?: Record<string, string> }): Promise<Record<string, unknown>>;
+export function loadWasmCore(options: MakeupSdkOptions): Promise<unknown>;
+export function sha256Hex(bytes: ArrayBuffer, digest?: MakeupSdkOptions['sha256']): Promise<string>;
