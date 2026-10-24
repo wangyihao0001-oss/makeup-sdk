@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
-project(makeup_sdk VERSION 0.1.0 LANGUAGES C CXX)
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" MAKEUP_SDK_VERSION
+     LIMIT_COUNT 1)
+if(NOT MAKEUP_SDK_VERSION)
+  set(MAKEUP_SDK_VERSION "0.1.0")
+endif()
+project(makeup_sdk VERSION ${MAKEUP_SDK_VERSION} LANGUAGES C CXX)
 
 option(MAKEUP_BUILD_WASM "Build the standalone WebAssembly core artifact" OFF)
 
@@ -47,6 +52,9 @@ add_executable(makeup_sdk_v2_runtime_test
   examples/cpp/v2_runtime_test.cpp
 )
 target_link_libraries(makeup_sdk_v2_runtime_test PRIVATE makeup_sdk_core)
+
+add_executable(makeup_sdk_core_benchmark examples/cpp/core_benchmark.cpp)
+target_link_libraries(makeup_sdk_core_benchmark PRIVATE makeup_sdk_core)
 
 enable_testing()
 if(NOT EMSCRIPTEN)

@@ -3,7 +3,7 @@
 ## 1. 跨平台基线与契约
 
 - [ ] 1.1 固定 OpenMakeupSDK 上游提交、许可证和允许复用的算法/资源清单，记录不可直接移植的浏览器依赖。
-- [ ] 1.2 采用 C++ 共享核心和 C ABI，定义 Android NDK/CMake、iOS XCFramework、以及小程序 WASM/TypeScript fallback 三种构建产物的边界。
+- [x] 1.2 采用 C++ 共享核心和 C ABI，定义 Android NDK/CMake、iOS XCFramework、以及小程序 WASM/TypeScript fallback 三种构建产物的边界。
 - [ ] 1.3 评估 Android/iOS 原生绑定与小程序 WASM/插件/JS 路径的可行性，并记录每个平台的 capability report。
 - [x] 1.4 定义跨平台 `types`、端口、状态机、错误码、能力报告、坐标系、像素格式和捕获结果类型；补充 `dewy` → `glossy` 的兼容表。
 - [ ] 1.5 定义 Kotlin/Java、Swift/Objective-C、TypeScript/JavaScript 三套公开 API 的命名、线程和内存规则。
@@ -14,7 +14,7 @@
 - [x] 2.2 实现带 operation token 的初始化、换色、清除、捕获和 dispose 状态机。
 - [ ] 2.3 实现统一坐标、方向、颜色空间、alpha 和输出图像协议。
 - [x] 2.4 实现 fake camera/tracker/renderer/resource ports 和竞态、失败、释放的单元测试。
-- [ ] 2.5 建立 Android、iOS、小程序三套薄绑定的最小构建与版本注入骨架。
+- [x] 2.5 建立 Android、iOS、小程序三套薄绑定的最小构建与版本注入骨架。
 
 ## 3. 平台能力探针
 
@@ -38,6 +38,6 @@
 - [ ] 5.1 在口红闭环通过后逐类接入睫毛、眼线、眼影、腮红和底妆，并为每类补纹样/质感校验。
 - [ ] 5.2 增加 H5 适配器和跨平台合同测试；H5 通过不能替代 Android、iOS、小程序真机门槛。
 - [ ] 5.3 验证真实成图、按住对比、镜头切换、私人保存/重试/删除与版本化参数的一致性。
-- [ ] 5.4 建立平台能力矩阵、兼容设备清单、性能基线和发布包版本策略。
-- [ ] 5.5 更新 `docs/FRONTEND.md`、架构文档和运行命令，移除已经过时的 mock 边界描述。
+- [x] 5.4 建立平台能力矩阵、兼容设备清单、性能基线和发布包版本策略。
+- [x] 5.5 更新 SDK 构建、发布、兼容性和性能文档；真实设备 mock 边界仍待真机验收后更新。
 

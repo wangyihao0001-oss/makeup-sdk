@@ -53,6 +53,14 @@ v2 的 C++ 端口契约位于 `core/include/makeup_sdk/makeup_sdk_v2_ports.h`，
 和可校验的 WASM loader；`runtime: 'auto'` 在 WASM 加载失败时记录原因并降级 TS/JS，
 `runtime: 'wasm'` 会直接返回加载错误。只有真实端口全部初始化后才报告口红可用。
 
+## 发布产物
+
+版本由根目录 `VERSION` 和 `vX.Y.Z` Git tag 统一管理。GitHub Release 会归档 Android
+AAR、iOS XCFramework、WASM/npm 包、SHA256SUMS、兼容性清单和性能报告。Linux/Android/
+WASM 由阿里云构建，iOS 由 GitHub Actions macOS runner 构建。
+
+发布工程化说明见 [`docs/RELEASE.md`](docs/RELEASE.md) 和 [`docs/BUILDING.md`](docs/BUILDING.md)。
+
 ## 当前边界
 
 - `core` 不接触摄像头、窗口、平台 UI 或 GPU 对象。

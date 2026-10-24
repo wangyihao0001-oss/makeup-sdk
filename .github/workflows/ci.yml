@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    name: Native C++ and C ABI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure and test
+        run: |
+          cmake -S . -B build-native -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-native -j2
+          ctest --test-dir build-native --output-on-failure
+
+  npm:
+    name: Mini-program package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - run: npm --prefix bindings/miniprogram test
+      - run: cd bindings/miniprogram && npm pack --dry-run
+
+  ios:
+    name: iOS XCFramework
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build XCFramework
+        run: bash bindings/ios/scripts/build-xcframework.sh
+      - name: Verify slices
+        run: |
+          test -f release/ios/MakeupSDK.xcframework/Info.plist
+          plutil -p release/ios/MakeupSDK.xcframework/Info.plist | grep -q arm64
+          plutil -p release/ios/MakeupSDK.xcframework/Info.plist | grep -q x86_64
+
+  aliyun:
+    name: Aliyun Android, WASM and remote benchmarks
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH
+        env:
+          ALIYUN_SSH_KEY: ${{ secrets.ALIYUN_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$ALIYUN_SSH_KEY" > ~/.ssh/aliyun_ci
+          chmod 600 ~/.ssh/aliyun_ci
+          ssh-keyscan -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aliyun_ci -o IdentitiesOnly=yes"
+      - name: Build on Aliyun
+        env:
+          ALIYUN_HOST: ${{ secrets.ALIYUN_HOST }}
+          ALIYUN_USER: ${{ secrets.ALIYUN_USER }}
+          ALIYUN_WORKDIR: ${{ secrets.ALIYUN_WORKDIR }}
+          MAKEUP_SDK_VERSION: 0.1.0
+          GIT_SSH_COMMAND: ssh -i ~/.ssh/aliyun_ci -o IdentitiesOnly=yes
+        run: bash scripts/ci/remote-linux-build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aliyun-linux-artifacts
+          path: release/aliyun

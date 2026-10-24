@@ -1,0 +1,35 @@
+name: Nightly baseline
+
+on:
+  schedule:
+    - cron: '30 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aliyun:
+    name: Remote core and WASM benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH
+        env:
+          ALIYUN_SSH_KEY: ${{ secrets.ALIYUN_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$ALIYUN_SSH_KEY" > ~/.ssh/aliyun_ci
+          chmod 600 ~/.ssh/aliyun_ci
+          ssh-keyscan -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
+      - name: Build and benchmark
+        env:
+          ALIYUN_HOST: ${{ secrets.ALIYUN_HOST }}
+          ALIYUN_USER: ${{ secrets.ALIYUN_USER }}
+          ALIYUN_WORKDIR: ${{ secrets.ALIYUN_WORKDIR }}
+          MAKEUP_SDK_VERSION: nightly
+        run: bash scripts/ci/remote-linux-build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nightly-baseline
+          path: release/aliyun/*benchmark.json

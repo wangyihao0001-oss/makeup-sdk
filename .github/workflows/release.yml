@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  aliyun:
+    name: Build Linux artifacts on Aliyun
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH
+        env:
+          ALIYUN_SSH_KEY: ${{ secrets.ALIYUN_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$ALIYUN_SSH_KEY" > ~/.ssh/aliyun_ci
+          chmod 600 ~/.ssh/aliyun_ci
+          ssh-keyscan -H "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
+      - name: Build
+        env:
+          ALIYUN_HOST: ${{ secrets.ALIYUN_HOST }}
+          ALIYUN_USER: ${{ secrets.ALIYUN_USER }}
+          ALIYUN_WORKDIR: ${{ secrets.ALIYUN_WORKDIR }}
+          MAKEUP_SDK_VERSION: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+          GIT_SSH_COMMAND: ssh -i ~/.ssh/aliyun_ci -o IdentitiesOnly=yes
+        run: |
+          export MAKEUP_SDK_VERSION="${MAKEUP_SDK_VERSION#v}"
+          bash scripts/ci/remote-linux-build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aliyun-linux-artifacts
+          path: release/aliyun
+
+  ios:
+    name: Build iOS XCFramework
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        env:
+          MAKEUP_SDK_VERSION: ${{ github.ref_name }}
+        run: |
+          export MAKEUP_SDK_VERSION="${MAKEUP_SDK_VERSION#v}"
+          bash bindings/ios/scripts/build-xcframework.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-artifacts
+          path: release/ios/MakeupSDK-*.xcframework.zip
+
+  publish:
+    name: Create GitHub Release
+    needs: [aliyun, ios]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - uses: actions/download-artifact@v4
+        with:
+          name: aliyun-linux-artifacts
+          path: release/aliyun
+      - uses: actions/download-artifact@v4
+        with:
+          name: ios-artifacts
+          path: release/ios
+      - name: Finalize checksums and reports
+        env:
+          MAKEUP_SDK_VERSION: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          export MAKEUP_SDK_VERSION="${MAKEUP_SDK_VERSION#v}"
+          bash scripts/release/finalize-release.sh
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" $(find release -maxdepth 1 -type f -print) --title "Makeup SDK ${GITHUB_REF_NAME}" --generate-notes

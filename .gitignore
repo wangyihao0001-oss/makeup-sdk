@@ -1,7 +1,12 @@
 build/
+build-*/
+/release/
 out/
 .DS_Store
 .idea/
 .vscode/
 *.xcuserstate
+bindings/android/.gradle/
+bindings/android/library/build/
+bindings/ios/build/
 

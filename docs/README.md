@@ -17,6 +17,13 @@
 小程序 binding 位于 `bindings/miniprogram/src/`，提供 WASM 优先、TS/JS fallback、
 资源缓存、WebGL 口红 renderer 和设备能力探针。
 
+发布工程化入口：
+
+- [`BUILDING.md`](BUILDING.md)：阿里云、Android、WASM、npm 和 macOS 构建。
+- [`RELEASE.md`](RELEASE.md)：SemVer、GitHub Release、校验和回滚流程。
+- [`COMPATIBILITY.md`](COMPATIBILITY.md)：设备清单和 capability report 规则。
+- [`PERFORMANCE.md`](PERFORMANCE.md)：服务器和真机性能基线规则。
+
 ## 业务接入
 
 - [`integration/PRODUCT-ARCHITECTURE.md`](integration/PRODUCT-ARCHITECTURE.md)：端上试妆、业务服务和私人资产的边界。

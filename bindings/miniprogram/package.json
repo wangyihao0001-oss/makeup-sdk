@@ -1,9 +1,27 @@
 {
-  "name": "makeup-sdk-miniprogram-binding",
-  "private": true,
+  "name": "@wangyihao0001/makeup-sdk-miniprogram",
+  "version": "0.1.0",
   "type": "module",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    }
+  },
+  "files": [
+    "README.md",
+    "src",
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "build:manifest": "node scripts/build-manifest.mjs dist/makeup_sdk_core.wasm dist/manifest.json"
+    "build:manifest": "node scripts/build-manifest.mjs dist/makeup_sdk_core.wasm dist/manifest.json",
+    "pack:release": "npm pack --pack-destination ../../release"
   }
 }

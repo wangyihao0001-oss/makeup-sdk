@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "sdk_version": "0.1.0",
+  "commit": "local",
+  "environment": "aliyun-cloudserver",
+  "native_core": {
+    "iterations": 1000,
+    "total_ms": 0.045063,
+    "per_iteration_ms": 0.000045
+  },
+  "wasm_core": {
+    "iterations": 1000,
+    "wasmBytes": 86571,
+    "load_ms": 38.80846,
+    "initialize_ms": 0.232672,
+    "frame_submit_total_ms": 8.456146,
+    "frame_submit_per_iteration_ms": 0.008456,
+    "capture_ms": 0.301773
+  },
+  "device_baselines": []
+}
