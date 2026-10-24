@@ -1,5 +1,22 @@
 # Makeup SDK
 
+## Current v2 contract slice
+
+The repository currently freezes the v2 C data contract in
+`core/include/makeup_sdk/makeup_sdk_v2.h`: lifecycle states, effect categories and
+finishes, frame/tracking validation, capability flags, capture metadata, and
+stable status/event values. New status and event values are appended so existing
+numeric values remain compatible.
+
+The platform-neutral port boundary is a C++ internal contract in
+`core/include/makeup_sdk/makeup_sdk_v2_ports.h`. `CameraPort`, `TrackerPort`,
+`RendererPort`, and `ResourcePort` receive platform objects through abstract
+methods; no camera, UI, GPU, or platform handle is stored by the shared C ABI.
+The port contract is verified by deterministic fake implementations in
+`examples/cpp/v2_fake_ports_test.cpp`. Image-buffer ownership is intentionally
+left to a future renderer binding; `mk2_capture_metadata` freezes only metadata
+needed across bindings.
+
 ## Requirement: Shared cross-platform runtime
 
 The SDK SHALL expose a platform-neutral core shared by Android, iOS and mini-program bindings. Shared modules SHALL NOT access `window`, `document`, `HTMLVideoElement`, `HTMLCanvasElement`, Android views, iOS UIKit/Metal objects or Three.js globals.

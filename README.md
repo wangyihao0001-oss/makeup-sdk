@@ -26,9 +26,27 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
+共享核心 v2 的宿主驱动状态机和回归测试会同时构建为
+`makeup_sdk_core_v2_test`。v2 使用 `mk2_` 前缀与现有 v1 C ABI 共存；平台绑定
+通过 `pump()` 驱动操作队列，并通过事件队列读取状态和操作结果。
+
+v2 的 C++ 端口契约位于 `core/include/makeup_sdk/makeup_sdk_v2_ports.h`，包含
+`CameraPort`、`TrackerPort`、`RendererPort` 和 `ResourcePort`。本地合同测试
+`makeup_sdk_v2_fake_ports_test` 使用确定性的 fake 实现验证启动/停止、逐帧追踪、
+渲染后捕获、资源版本校验和释放行为；端口暂不暴露到 C ABI。
+
+当前 v2 仍是无 renderer 的共享核心骨架：能力报告中的六类妆效均为不支持，
+`apply()` 返回 `MK2_STATUS_UNSUPPORTED_EFFECT`，`capture()` 会以
+`MK2_STATUS_RENDERER_UNAVAILABLE` 完成失败事件，不生成图片。
+
+`core/include/makeup_sdk/makeup_sdk_v2_runtime.h` 提供 C++ 端口编排、catalog、资源
+版本校验和 `dewy → glossy` 质感归一化。小程序 binding 已提供同语义的 TS/JS fallback
+和 WASM 工厂入口；绑定自身不会伪造真机能力，只有真实端口全部初始化后才报告口红可用。
+
 ## 当前边界
 
 - `core` 不接触摄像头、窗口、平台 UI 或 GPU 对象。
+- v2 会校验帧尺寸、像素格式、数据长度、方向、镜像和追踪置信度；当前只接受 RGBA8/BGRA8。
 - 平台层负责采集视频帧、提供关键点/追踪结果，并连接平台渲染后端。
 - 第一条可验收链路是三端真实设备上的单色口红效果。
 

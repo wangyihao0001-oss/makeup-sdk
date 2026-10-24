@@ -4,10 +4,18 @@
 
 ## 设计与规格
 
+- [`TECHNICAL-SOLUTION.md`](TECHNICAL-SOLUTION.md)：完整技术方案、接口、状态机、平台绑定、构建、测试与分阶段实施计划。
+- v2 当前契约：`core/include/makeup_sdk/makeup_sdk_v2.h`（C ABI）和
+  `core/include/makeup_sdk/makeup_sdk_v2_ports.h`（C++ 内部端口）；
+  `core/include/makeup_sdk/makeup_sdk_v2_runtime.h` 提供端口编排、catalog
+  和质感归一化。
 - [`specs/rewrite-makeup-sdk/proposal.md`](specs/rewrite-makeup-sdk/proposal.md)：重写目标、范围和影响。
 - [`specs/rewrite-makeup-sdk/design.md`](specs/rewrite-makeup-sdk/design.md)：C++ 共享核心、C ABI、三端绑定和渲染边界。
 - [`specs/rewrite-makeup-sdk/tasks.md`](specs/rewrite-makeup-sdk/tasks.md)：实施工作包和验收门槛。
 - [`specs/rewrite-makeup-sdk/specs/makeup-sdk/spec.md`](specs/rewrite-makeup-sdk/specs/makeup-sdk/spec.md)：可验证的 SDK 行为规格。
+
+小程序 binding 位于 `bindings/miniprogram/src/`，提供 WASM 优先、TS/JS fallback、
+资源缓存、WebGL 口红 renderer 和设备能力探针。
 
 ## 业务接入
 

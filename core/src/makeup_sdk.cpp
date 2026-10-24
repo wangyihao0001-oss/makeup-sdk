@@ -1,6 +1,7 @@
 #include "makeup_sdk/makeup_sdk.h"
 
 #include <array>
+#include <cstddef>
 #include <new>
 
 struct mk_session {

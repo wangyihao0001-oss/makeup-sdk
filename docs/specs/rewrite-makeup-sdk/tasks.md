@@ -5,15 +5,15 @@
 - [ ] 1.1 固定 OpenMakeupSDK 上游提交、许可证和允许复用的算法/资源清单，记录不可直接移植的浏览器依赖。
 - [ ] 1.2 采用 C++ 共享核心和 C ABI，定义 Android NDK/CMake、iOS XCFramework、以及小程序 WASM/TypeScript fallback 三种构建产物的边界。
 - [ ] 1.3 评估 Android/iOS 原生绑定与小程序 WASM/插件/JS 路径的可行性，并记录每个平台的 capability report。
-- [ ] 1.4 定义跨平台 `types`、端口、状态机、错误码、能力报告、坐标系、像素格式和捕获结果类型；补充 `dewy` → `glossy` 的兼容表。
+- [x] 1.4 定义跨平台 `types`、端口、状态机、错误码、能力报告、坐标系、像素格式和捕获结果类型；补充 `dewy` → `glossy` 的兼容表。
 - [ ] 1.5 定义 Kotlin/Java、Swift/Objective-C、TypeScript/JavaScript 三套公开 API 的命名、线程和内存规则。
 
 ## 2. 共享核心与绑定骨架
 
-- [ ] 2.1 实现共享核心的 manifest/catalog、稳定纹样 ID、版本校验和资源缓存接口。
-- [ ] 2.2 实现带 operation token 的初始化、换色、清除、捕获和 dispose 状态机。
+- [x] 2.1 实现共享核心的 manifest/catalog、稳定纹样 ID、版本校验和资源缓存接口。
+- [x] 2.2 实现带 operation token 的初始化、换色、清除、捕获和 dispose 状态机。
 - [ ] 2.3 实现统一坐标、方向、颜色空间、alpha 和输出图像协议。
-- [ ] 2.4 实现 fake camera/tracker/renderer/resource ports 和竞态、失败、释放的单元测试。
+- [x] 2.4 实现 fake camera/tracker/renderer/resource ports 和竞态、失败、释放的单元测试。
 - [ ] 2.5 建立 Android、iOS、小程序三套薄绑定的最小构建与版本注入骨架。
 
 ## 3. 平台能力探针
