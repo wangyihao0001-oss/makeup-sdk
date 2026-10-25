@@ -77,7 +77,12 @@ class MakeupSdk private constructor(private val config: MakeupSdkConfig) : AutoC
 
     private var operationId = 0L
     private fun nextOperation(): Long = ++operationId
-    private fun <T> run(block: () -> T): T = block()
+    private suspend fun <T> run(block: () -> T): T = suspendCoroutine { continuation ->
+        executor.execute {
+            try { continuation.resume(block()) }
+            catch (error: Throwable) { continuation.resumeWithException(error) }
+        }
+    }
     private fun checkStatus(status: Int, action: String) { if (status != 0) throw SdkError(status, "SDK $action failed") }
     private fun capabilities(): CapabilityReport {
         val values = native.capabilities() ?: IntArray(6)
