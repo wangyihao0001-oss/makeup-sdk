@@ -1,6 +1,6 @@
 import { loadWasmCore } from './wasm-loader.js';
-import { EFFECT, FINISH, SdkError, STATE, STATUS } from './constants.js';
-export { EFFECT, FINISH, SdkError, STATE, STATUS } from './constants.js';
+import { EFFECT, EVENT, FINISH, SdkError, STATE, STATUS } from './constants.js';
+export { EFFECT, EVENT, FINISH, SdkError, STATE, STATUS } from './constants.js';
 
 const EFFECTS = Object.values(EFFECT);
 
@@ -128,6 +128,8 @@ export class MakeupSdkSession {
     this.started = false;
     this.disposed = false;
     this.generation = new Map();
+    this.operationId = 0;
+    this.eventListeners = new Set();
     this.capabilityReport = this.core.capabilities();
   }
 
@@ -137,8 +139,34 @@ export class MakeupSdkSession {
     return () => this.listeners.get(event)?.delete(callback);
   }
 
+  onEvent(callback) {
+    this.eventListeners.add(callback);
+    return () => this.eventListeners.delete(callback);
+  }
+
   emit(event, payload) {
     for (const callback of this.listeners.get(event) ?? []) callback(payload);
+    const unified = this.#unifiedEvent(event, payload);
+    if (unified) for (const callback of this.eventListeners) callback(unified);
+  }
+
+  #unifiedEvent(event, payload) {
+    const base = {
+      sdkVersion: this.core.sdkVersion,
+      manifestVersion: this.core.manifestVersion,
+      operationId: payload?.operationId ?? 0,
+      category: payload?.category,
+      status: payload?.status ?? STATUS.OK,
+      timestamp: Date.now()
+    };
+    if (event === 'state') return { ...base, type: EVENT.STATE_CHANGED, state: payload };
+    if (event === 'effect') return { ...base, type: EVENT.OPERATION_COMPLETED, params: payload.params };
+    if (event === 'frame') return { ...base, type: EVENT.TRACKING_STATUS, tracking: payload.tracking };
+    if (event === 'error') {
+      return { ...base, type: EVENT.ERROR, status: payload?.status ?? STATUS.INTERNAL_ERROR,
+        error: payload };
+    }
+    return null;
   }
 
   getCapabilities() {
@@ -225,22 +253,24 @@ export class MakeupSdkSession {
     assertStatus(await this.core.apply?.({ ...params, finish }) ?? STATUS.OK,
       'Core effect application failed');
     this.core.layers.set(params.category, { ...params, finish });
-    this.emit('effect', { category: params.category, params: { ...params, finish } });
-    return { status: STATUS.OK, params: { ...params, finish } };
+    const operationId = ++this.operationId;
+    this.emit('effect', { category: params.category, operationId,
+      params: { ...params, finish } });
+    return { status: STATUS.OK, operationId, params: { ...params, finish } };
   }
 
   async clear(category) {
     this.ensureInitialized();
     assertStatus(await this.core.clear?.(category) ?? STATUS.OK, 'Core effect clear failed');
     this.core.layers.delete(category);
-    return { status: STATUS.OK, category };
+    return { status: STATUS.OK, operationId: ++this.operationId, category };
   }
 
   async clearAll() {
     this.ensureInitialized();
     assertStatus(await this.core.clearAll?.() ?? STATUS.OK, 'Core clearAll failed');
     this.core.layers.clear();
-    return { status: STATUS.OK };
+    return { status: STATUS.OK, operationId: ++this.operationId };
   }
 
   async capture() {
@@ -250,18 +280,28 @@ export class MakeupSdkSession {
     if (!capture) throw new SdkError(STATUS.CAPTURE_FAILED, 'Renderer did not return a capture');
     assertStatus(await this.core.capture?.() ?? STATUS.OK, 'Core capture failed');
     this.setState(STATE.CAPTURED);
+    const metadata = {
+      timestampNs: this.core.lastFrame.timestampNs,
+      width: this.core.lastFrame.width,
+      height: this.core.lastFrame.height,
+      orientation: this.core.lastFrame.orientation,
+      mirrored: this.core.lastFrame.mirrored,
+      sdkVersion: this.core.sdkVersion,
+      manifestVersion: this.core.manifestVersion,
+      rendererVersion: this.options.rendererVersion ?? 1
+    };
     return {
       ...capture,
-      metadata: {
-        timestampNs: this.core.lastFrame.timestampNs,
-        width: this.core.lastFrame.width,
-        height: this.core.lastFrame.height,
-        orientation: this.core.lastFrame.orientation,
-        mirrored: this.core.lastFrame.mirrored,
-        sdkVersion: this.core.sdkVersion,
-        manifestVersion: this.core.manifestVersion,
-        rendererVersion: this.options.rendererVersion ?? 1
-      },
+      path: capture.path,
+      timestampNs: metadata.timestampNs,
+      width: metadata.width,
+      height: metadata.height,
+      orientation: metadata.orientation,
+      mirrored: metadata.mirrored,
+      sdkVersion: metadata.sdkVersion,
+      manifestVersion: metadata.manifestVersion,
+      rendererVersion: metadata.rendererVersion,
+      metadata,
       layers: Object.fromEntries(this.core.layers)
     };
   }
@@ -375,3 +415,5 @@ export async function create(options = {}) {
   }
   return session;
 }
+
+export { MakeupSdkSession as MakeupSdk };

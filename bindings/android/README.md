@@ -1,7 +1,8 @@
 # Android binding
 
-这里提供可构建的 Android Library 工程，入口为
-`com.wangyihao0001.makeupsdk.MakeupSdk`。JNI/NDK 只包装共享 C ABI，平台相机、
+这里提供可构建的 Android Library 工程，Kotlin 入口为
+`com.wangyihao0001.makeupsdk.MakeupSdk`，Java callback 兼容入口为
+`MakeupSdkJava`。JNI/NDK 只包装共享 C ABI，平台相机、
 追踪器和 GPU 端口仍由上层 Android 应用注入。
 
 构建 AAR：

@@ -49,6 +49,16 @@ export const FINISH = Object.freeze({
   GLITTER: 'glitter'
 });
 
+export const EVENT = Object.freeze({
+  STATE_CHANGED: 'stateChanged',
+  OPERATION_COMPLETED: 'operationCompleted',
+  FRAME_REJECTED: 'frameRejected',
+  RESOURCE_PROGRESS: 'resourceProgress',
+  TRACKING_STATUS: 'trackingStatus',
+  ERROR: 'error',
+  PERFORMANCE: 'performance'
+});
+
 export class SdkError extends Error {
   constructor(status, message, details = undefined) {
     super(message);

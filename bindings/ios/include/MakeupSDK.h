@@ -4,8 +4,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 FOUNDATION_EXPORT NSString * const MakeupSDKVersion;
 
-/** Minimal Objective-C facade over the shared C ABI. */
-@interface MakeupSDK : NSObject {
+/** Objective-C compatibility facade over the shared C ABI. */
+@interface MakeupSDKObjC : NSObject {
   void *_session;
 }
 

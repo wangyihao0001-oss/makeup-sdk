@@ -123,3 +123,20 @@ test('unsupported effect is rejected before resources are changed', async () => 
     error.status === STATUS.UNSUPPORTED_EFFECT);
   await sdk.dispose();
 });
+
+test('unified onEvent and flat capture metadata preserve legacy listeners', async () => {
+  const p = ports();
+  const sdk = await create({ runtime: 'ts-js', ...p });
+  const events = [];
+  const unsubscribe = sdk.onEvent((event) => events.push(event));
+  await sdk.initialize();
+  await sdk.start();
+  await p.camera.emit(frame);
+  const capture = await sdk.capture();
+  assert.equal(capture.orientation, 90);
+  assert.equal(capture.metadata.orientation, 90);
+  assert.equal(events.some((event) => event.type === 'stateChanged'), true);
+  assert.equal(events.some((event) => event.type === 'trackingStatus'), true);
+  unsubscribe();
+  await sdk.dispose();
+});

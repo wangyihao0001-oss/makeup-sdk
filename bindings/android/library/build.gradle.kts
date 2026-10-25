@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("maven-publish")
+    id("org.jetbrains.kotlin.android")
 }
 
 val sdkVersion = providers.gradleProperty("sdkVersion").orElse("0.1.0")
@@ -30,6 +31,11 @@ android {
 
     ndkVersion = "27.2.12479018"
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
@@ -39,6 +45,10 @@ android {
 
     buildFeatures {
         buildConfig = true
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
     }
 
     defaultConfig {

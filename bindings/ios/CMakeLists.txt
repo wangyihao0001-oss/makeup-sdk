@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
-project(MakeupSDK LANGUAGES C CXX OBJCXX)
+project(MakeupSDK LANGUAGES C CXX OBJCXX Swift)
 
 get_filename_component(MAKEUP_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 file(STRINGS "${MAKEUP_ROOT}/VERSION" MAKEUP_IOS_VERSION LIMIT_COUNT 1)
 
 add_library(MakeupSDK STATIC
   src/MakeupSDK.mm
+  src/MakeupSDK.swift
   "${MAKEUP_ROOT}/core/src/makeup_sdk.cpp"
   "${MAKEUP_ROOT}/core/src/makeup_sdk_v2.cpp"
   "${MAKEUP_ROOT}/core/src/makeup_sdk_v2_runtime.cpp"
@@ -23,4 +24,5 @@ target_compile_definitions(MakeupSDK PRIVATE
 set_target_properties(MakeupSDK PROPERTIES
   OUTPUT_NAME "MakeupSDK"
   PUBLIC_HEADER "${CMAKE_CURRENT_LIST_DIR}/include/MakeupSDK.h"
+  SWIFT_OBJC_BRIDGING_HEADER "${CMAKE_CURRENT_LIST_DIR}/include/MakeupSDK.h"
 )

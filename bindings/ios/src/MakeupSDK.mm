@@ -12,7 +12,7 @@ static mk2_session *session_from(void *value) {
   return reinterpret_cast<mk2_session *>(value);
 }
 
-@implementation MakeupSDK
+@implementation MakeupSDKObjC
 
 - (instancetype)initWithManifestVersion:(uint32_t)manifestVersion {
   self = [super init];
