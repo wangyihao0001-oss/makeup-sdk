@@ -83,8 +83,42 @@ export function createWechatOpenMakeupResourcePort({ readFile, downloadFile, bas
     },
     async release() { manifest = undefined; return STATUS.OK; },
     probe() { return typeof readFile === 'function' || typeof downloadFile === 'function'; },
+    async loadAsset(path) { return load({ url: resolve(path) }); },
     getManifest() { return manifest; },
     resolve
+  };
+}
+
+/**
+ * Asset callback for the upstream renderer. It follows the same local-file /
+ * remote-download rules as the WASM loader, but is exposed separately so a
+ * page can feed binary GLB/GLSL data to createOpenMakeupWebGlRenderer without
+ * coupling the renderer to wx globals.
+ */
+export function createWechatOpenMakeupAssetLoader({ readFile, downloadFile, baseUrl = '' } = {}) {
+  const load = createWechatWasmLoader({ readFile, downloadFile });
+  const resolve = (path) => `${String(baseUrl).replace(/\/$/, '')}/${String(path).replace(/^\//, '')}`;
+  return async (path) => load({ url: resolve(path) });
+}
+
+/**
+ * Image callback for WebGL texture uploads. `createImage` should be the
+ * canvas/host image factory (for example `canvas.createImage`). `resolveImage`
+ * may turn a packaged or downloaded path into the local path accepted by the
+ * image object. This keeps all WeChat-specific image lifecycle details out of
+ * the renderer.
+ */
+export function createWechatOpenMakeupTextureLoader({ createImage, resolveImage, baseUrl = '' } = {}) {
+  const resolve = (path) => `${String(baseUrl).replace(/\/$/, '')}/${String(path).replace(/^\//, '')}`;
+  return async (path) => {
+    if (typeof createImage !== 'function') throw new SdkError(STATUS.ASSET_LOAD_FAILED, 'A WeChat image factory is required for shader textures');
+    const image = await createImage();
+    const source = typeof resolveImage === 'function' ? await resolveImage(resolve(path)) : resolve(path);
+    return new Promise((resolveResult, reject) => {
+      image.onload = () => resolveResult(image);
+      image.onerror = (error) => reject(new SdkError(STATUS.ASSET_LOAD_FAILED, `Texture load failed: ${path}`, error));
+      image.src = source;
+    });
   };
 }
 

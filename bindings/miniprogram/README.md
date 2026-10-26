@@ -16,10 +16,12 @@ SDK、API、WASM、资源清单版本、文件大小、SHA-256 和必需导出�
 `createWechatWasmManifestLoader()` 注入下载或本地文件读取实现。loader 会校验 WASM
 头、版本、大小、SHA-256、导出函数和 API 版本，并在实例化后执行初始化函数。
 
-`src/webgl-renderer.js` 包含两种 renderer：兼容旧合同的口红 renderer，以及保持相机
-纹理、面部关键点和多妆效层的 raw WebGL renderer。后者要求 tracker 提供归一化
-关键点，并通过 `canvasToTempFilePath` 导出当前帧。上游 OpenMakeupSDK 的模型、shader、
-纹样和 FaceMesh 资源位于 `assets/`，移植来源和固定提交见 `UPSTREAM.md`；
+`src/webgl-renderer.js` 保留合同测试用的轻量 renderer；`src/openmakeup-webgl-renderer.js`
+是完整的无 Three.js WebGL 移植：读取上游 `face.glb` 的 468 顶点、索引、UV 通道和
+morph targets，编译上游六类妆效 shader，按 FaceMesh 每帧更新网格，并支持纹样纹理、
+颜色、finish、morph、wireframe、blur 和捕获。它要求宿主提供 `loadAsset`（微信端可用
+`createWechatOpenMakeupAssetLoader()`）以及 WebGL canvas，通过
+`canvasToTempFilePath` 导出当前帧。上游 OpenMakeupSDK 的模型、shader、纹样和 FaceMesh 资源位于 `assets/`，移植来源和固定提交见 `UPSTREAM.md`；
 `dist/openmakeup-assets.manifest.json` 记录 73 个纹样、模型、shader 和 FaceMesh 文件的版本与 SHA-256。
 
 真实微信项目需要把小程序 camera、FaceMesh、WebGL canvas 和临时文件导出 API 通过

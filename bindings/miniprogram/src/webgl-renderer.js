@@ -150,7 +150,7 @@ function hexColor(argb, intensity, finish) {
  * active layer. A host can replace the shader programs later without changing
  * the binding or port contract.
  */
-export function createWebGlMakeupRenderer({ gl, canvas, canvasToTempFilePath,
+export function createLegacyWebGlMakeupRenderer({ gl, canvas, canvasToTempFilePath,
   clear = true, supportedEffects = Object.values(EFFECT), loadPatternTexture } = {}) {
   let cameraProgram;
   let layerProgram;
@@ -308,3 +308,15 @@ export function createWebGlMakeupRenderer({ gl, canvas, canvasToTempFilePath,
     captureProbe() { return Boolean(canvasToTempFilePath || canvas?.toTempFilePath); }
   };
 }
+
+// The public name now selects the full upstream shader path whenever the
+// host supplies asset/model callbacks. Existing callers without those
+// callbacks retain the lightweight contract renderer for compatibility.
+export function createWebGlMakeupRenderer(options = {}) {
+  if (options.loadAsset || options.loadModel || options.upstream === true) {
+    return createOpenMakeupWebGlRenderer(options);
+  }
+  return createLegacyWebGlMakeupRenderer(options);
+}
+
+import { createOpenMakeupWebGlRenderer } from './openmakeup-webgl-renderer.js';

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   EFFECT,
   FINISH,
@@ -11,6 +12,7 @@ import {
   normalizeFinish,
   normalizeFaceMeshResult,
   normalizeWechatFrame,
+  parseOpenMakeupFaceGlb,
   runMiniProgramProbe
 } from '../src/index.js';
 
@@ -208,4 +210,15 @@ test('keeps the upstream OpenMakeup API shape as a compatibility facade', async 
   assert.deepEqual(result, { category: 'lipstick', color: '#b4002e', finish: FINISH.GLOSSY, pattern: 6427 });
   assert.equal(sdk.categories.includes('eyeline'), true);
   await sdk.dispose();
+});
+
+test('parses the upstream 468-point face mesh and morph targets without Three.js', async () => {
+  const glb = await readFile(new URL('../assets/models/face.glb', import.meta.url));
+  const model = parseOpenMakeupFaceGlb(glb);
+  assert.equal(model.positions.length / 3, 468);
+  assert.equal(model.normals.length / 3, 468);
+  assert.equal(model.indices.length, 2694);
+  assert.equal(model.morphs.length, 12);
+  assert.equal(model.morphNames[0], 'facemesh9');
+  assert.equal(model.uvLip.length / 2, 468);
 });
