@@ -1,6 +1,6 @@
 # Makeup SDK
 
-基于 OpenMakeupSDK 重写的微信小程序试妆 SDK 项目。当前交付目标只包含微信小程序；Android 和 iOS 绑定暂时冻结，不作为发布和验收条件。
+基于 OpenMakeupSDK 重写的微信小程序试妆 SDK 项目。本项目仅适配微信小程序。
 
 当前版本包含 C++17 共享核心、稳定 C ABI、standalone WASM 构建和可发布的小程序 JS/TS binding。小程序包内置 FaceMesh 资源、468 点网格解析、六类妆效 shader、WASM loader、微信相机帧/纹理/资源适配器和一键宿主工厂。
 

@@ -24,6 +24,6 @@ await writeFile(new URL('docs/performance/baseline.md', root), [
   '',
   `WASM 加载：${wasm.load_ms} ms；初始化：${wasm.initialize_ms} ms；帧提交：${wasm.frame_submit_per_iteration_ms} ms/iteration；capture：${wasm.capture_ms} ms；产物：${wasm.wasmBytes} bytes。`,
   '',
-  '真实 Android、iOS 和微信设备数据待设备型号提供后补录。',
+  '真实微信设备数据待设备型号提供后补录。',
   ''
 ].join('\n'));

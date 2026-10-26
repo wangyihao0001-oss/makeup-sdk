@@ -14,4 +14,4 @@
 
 回滚通过重新指向上一个 GitHub Release，并保留历史 artifact 与 checksum；不覆盖已发布的版本号。
 
-Android AAR、iOS XCFramework 和对应真机验收已移出当前项目范围，相关目录保留用于未来重新启用，不参与当前 CI、Release 或完成判定。
+本项目只发布微信小程序 WASM/npm 包；其他移动端适配不属于本仓库。

@@ -2,7 +2,7 @@
 
 ## Why
 
-当前 `miniprogram/src/makeup` 只有产品门面、mock 引擎和 unsupported 引擎。上游 OpenMakeupSDK 直接依赖 `HTMLVideoElement`、`HTMLCanvasElement`、`window`、MediaPipe 和 Three.js，不能直接复用到微信小程序，更不能作为 Android/iOS 的通用运行时。继续把浏览器对象塞进页面会让三端行为分叉，也会把同步的产品接口和异步的资源加载混在一起。
+当前 `miniprogram/src/makeup` 只有产品门面、mock 引擎和 unsupported 引擎。上游 OpenMakeupSDK 直接依赖 `HTMLVideoElement`、`HTMLCanvasElement`、`window`、MediaPipe 和 Three.js，不能直接复用到微信小程序，也不应把浏览器运行时直接带入微信宿主。继续把浏览器对象塞进页面会让宿主行为分叉，也会把同步的产品接口和异步的资源加载混在一起。
 
 ## What Changes
 
@@ -22,5 +22,5 @@
 
 ## Impact
 
-主要影响共享核心、`bindings/miniprogram/`、试妆镜页面和静态资源加载。保存、列表、删除接口继续接收已经导出的成图和冻结参数；服务端不承担妆效渲染。实现需要固定 OpenMakeupSDK 上游提交、迁移模型/纹样/shader 资源、建立微信设备能力矩阵和小程序性能记录。Android/iOS 绑定暂不属于当前范围。
+主要影响共享核心、`bindings/miniprogram/`、试妆镜页面和静态资源加载。保存、列表、删除接口继续接收已经导出的成图和冻结参数；服务端不承担妆效渲染。实现需要固定 OpenMakeupSDK 上游提交、迁移模型/纹样/shader 资源、建立微信设备能力矩阵和小程序性能记录。项目只维护微信小程序绑定。
 

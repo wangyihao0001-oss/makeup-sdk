@@ -21,13 +21,13 @@ needed across bindings.
 
 The SDK SHALL expose a platform-neutral core for the mini-program binding. Shared modules SHALL NOT access `window`, `document`, `HTMLVideoElement`, `HTMLCanvasElement`, or Three.js globals.
 
-The SDK SHALL receive camera frames, face landmarks, render targets and asset loading through injected ports. Platform adapters MAY use Android CameraX, iOS AVFoundation, WeChat camera APIs or platform GPU APIs, but those APIs MUST remain outside the shared core.
+The SDK SHALL receive camera frames, face landmarks, render targets and asset loading through injected ports. The mini-program adapter MAY use WeChat camera APIs, WebGL and platform GPU APIs, but those APIs MUST remain outside the shared core.
 
 The SDK SHALL publish lifecycle, parameter, error and capture semantics through the TypeScript/JavaScript mini-program binding.
 
 #### Scenario: Platform binding loads without foreign runtime globals
 
-- **WHEN** an Android, iOS or mini-program client loads its binding
+- **WHEN** a mini-program client loads its binding
 - **THEN** module evaluation completes without reading another platform's runtime globals
 - **AND** the binding reports adapter readiness separately from business page readiness.
 
@@ -60,13 +60,13 @@ The adapter SHALL map the product finish `dewy` to the engine finish `glossy`, p
 - **THEN** the same values are available to the capture and save payload
 - **AND** a missing future asset produces an explicit unavailable state instead of silently selecting another pattern.
 
-## Requirement: Real frame pipeline on three platforms
+## Requirement: Real frame pipeline in the mini-program host
 
 The first production-capable milestone SHALL prove one lipstick effect on one supported WeChat mini-program device: camera frame acquisition, face landmark tracking, WebGL compositing, current-frame capture and resource release.
 
 The pipeline SHALL keep live frames on the device. Only an explicit save action MAY upload the captured image through the existing private asset flow.
 
-#### Scenario: Face unavailable on any platform
+#### Scenario: Face unavailable in the mini-program host
 
 - **WHEN** the tracker reports no face, multiple faces or an unusable frame
 - **THEN** the renderer keeps the previous valid state or pauses rendering with a user-visible reason
@@ -92,7 +92,7 @@ Each platform adapter SHALL convert its native camera buffer into that contract 
 
 #### Scenario: Front-camera mirror
 
-- **WHEN** Android, iOS and mini-program use their front cameras
+- **WHEN** the mini-program uses its front camera
 - **THEN** the same landmark and effect coordinates produce the same logical left/right result
 - **AND** the captured image declares its final orientation and mirror state.
 

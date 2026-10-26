@@ -1,34 +1,36 @@
 # 架构说明
 
+## 范围
+
+本项目只提供微信小程序 SDK。共享 C++ 核心和 C ABI 作为 WASM 内部运行时使用，业务代码只接触 TypeScript/JavaScript facade，不直接调用 C ABI。
+
 ## 分层
 
 ```text
-平台 API（TypeScript/JavaScript 小程序 binding）
+微信小程序公开 API（TypeScript/JavaScript）
         ↓
-平台绑定（JNI / Objective-C / JS-WASM）
+微信宿主适配（相机帧、权限、生命周期、文件与 canvas）
         ↓
-稳定 C ABI（core/include/makeup_sdk/makeup_sdk.h）
+核心适配器（WASM 优先，TS/JS fallback）
         ↓
-共享 C++ 核心（状态、参数、坐标、效果编排）
+共享 C++ 核心 / 稳定 C ABI
         ↓
-平台采集与渲染后端（CameraX/AVFoundation/小程序能力）
+FaceMesh tracker + WebGL renderer + 资源缓存
 ```
 
-共享核心只处理与平台无关的数据和状态，避免把 Android、iOS 或小程序对象泄漏到公共接口。所有耗时操作都由绑定层异步调度；ABI 负责返回可判断的状态码和错误信息。
+共享核心只处理状态、参数、坐标、版本、队列和捕获元数据；不读取微信全局对象，也不持有相机、canvas 或 GPU 对象。微信适配层负责把宿主帧归一化后提交给核心，并把渲染结果导出为临时图片路径。
 
 ## 运行时流程
 
-1. 创建 session。
-2. 初始化并读取能力矩阵。
-3. 平台绑定提交帧和追踪结果。
-4. 调用 `mk_session_apply` 更新妆容参数。
-5. 平台渲染器输出画面或纹理。
-6. 停止后释放 session。
+1. `create(config)` 选择 WASM 或 TS/JS 核心并加载版本清单。
+2. `initialize()` 加载 FaceMesh、shader、纹样和 WebGL 资源，生成能力报告。
+3. `start()` 启动微信相机帧回调。
+4. 每帧执行追踪、参数校验和 WebGL 合成；实时帧只在设备内处理。
+5. `capture()` 等待最近一次有效渲染并导出当前合成帧。
+6. `stop()` 停止帧回调；`dispose()` 释放 tracker、WebGL、WASM 和资源缓存。
 
 ## 后续工作
 
-- 增加帧输入、关键点输入和统一坐标/像素格式。
-- 为微信小程序实现 WASM/TypeScript + WebGL 后端；Android/iOS 后端暂不在当前范围。
-- 用真实单色口红链路替换当前参数存储骨架。
-- 补充 ABI 兼容性、性能和跨端视觉一致性测试。
-
+- 完成微信基础库和真机设备矩阵，记录相机、FaceMesh、WebGL、导出和上下文恢复结果。
+- 在不同设备上补充首帧、持续帧率、内存和失败恢复基线。
+- 将业务页面从 mock capture 切换到真实小程序 binding。

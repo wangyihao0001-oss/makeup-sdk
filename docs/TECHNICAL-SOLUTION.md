@@ -6,7 +6,7 @@
 
 ## 1. 文档目的
 
-本文为 Makeup SDK 重写项目的技术实施方案。当前交付范围已收敛为 OpenMakeupSDK 到微信小程序的重写；Android/iOS 章节保留为历史设计参考，不参与当前构建、发布和验收。
+本文为 Makeup SDK 重写项目的技术实施方案。当前交付范围已收敛为 OpenMakeupSDK 到微信小程序的重写；仓库不包含 其他移动平台适配逻辑。
 
 本文针对当前仓库的实际状态编写：共享核心已提供 v1/v2 ABI、状态机、事件队列、帧校验及清理竞态回归测试；小程序已提供 WASM/TS-JS binding、内置 FaceMesh tracker、无 Three.js 的上游网格/shader renderer、微信宿主工厂和资源清单；真实设备验证仍未完成。
 
@@ -61,7 +61,7 @@
 - `core/src/makeup_sdk.cpp`、`core/src/makeup_sdk_v2.cpp`：共享核心实现
 - `examples/cpp/smoke.cpp`、`examples/cpp/core_v2_test.cpp`：C++ smoke 与 v2 合同测试
 - `examples/c/core_v2_c_header_test.c`：C 编译兼容性测试
-- `bindings/*/README.md`：三端绑定边界说明
+- `bindings/miniprogram/README.md`：微信小程序绑定边界说明
 - `renderers/README.md`：渲染器预留说明
 - `docs/specs/rewrite-makeup-sdk/`：重写规格和任务清单
 
@@ -72,7 +72,7 @@
 - 枚举只有 `lip/blush/eye/base` 四类，与产品六类妆效不一致。
 - 质感只有 `matte/glossy/shimmer/natural`，没有明确 `dewy → glossy` 和 `glitter` 的兼容规则。
 
-后续实现必须先冻结新的公共类型，再开始平台绑定，避免三端各自扩展出不兼容的接口。
+后续实现必须先冻结新的公共类型，再开始平台绑定，避免 WASM、TS/JS 和宿主工厂扩展出不兼容的接口。
 
 ## 4. 总体架构
 
@@ -84,8 +84,8 @@
                           │ 平台公开 API
 ┌─────────────────────────┴──────────────────────────────────┐
 │                     平台绑定层                              │
-│ Android Kotlin/Java │ iOS Swift/Obj-C │ Mini-program TS/JS │
-│ JNI/NDK             │ C/ObjC++         │ WASM 或 JS fallback│
+│ 微信小程序 TS/JS facade + 宿主适配                       │
+│ 相机帧 / FaceMesh / WebGL / WASM 或 TS-JS fallback        │
 └─────────────────────────┬──────────────────────────────────┘
                           │ 稳定 C ABI
 ┌─────────────────────────┴──────────────────────────────────┐
@@ -119,7 +119,7 @@
 - 打开摄像头
 - 请求权限
 - 创建窗口或 Surface
-- 持有 Android View、iOS UIKit/Metal 或小程序 canvas
+- 持有微信 camera、canvas、WebGL context 或页面对象
 - 直接访问 `window`、`document`、HTML media、Three.js 或平台线程 API
 
 ### 4.2 平台层职责
@@ -454,73 +454,22 @@ release(version)
 - 用户私密内容
 - 人脸关键点原始数据
 
-## 9. 三端实现方案
+## 9. 微信小程序实现方案
 
-### 9.1 Android
-
-建议结构：
+当前唯一平台路径是微信宿主工厂：
 
 ```text
-Kotlin API
-  → JNI bridge
-  → C ABI
-  → C++ core
-  → CameraX / tracker / OpenGL 或 Vulkan renderer
-```
-
-要求：
-
-- CameraX 负责摄像头生命周期和权限后的帧流
-- JNI 只传递不透明句柄和必要数据
-- UI、Surface 和线程对象不能进入 core
-- native 资源在 Java/Kotlin 生命周期结束前显式 dispose
-- 产物优先为 AAR + 多 ABI native library
-
-首期 ABI 建议覆盖 `arm64-v8a`，后续再增加 `armeabi-v7a` 或 x86 模拟器支持。
-
-### 9.2 iOS
-
-建议结构：
-
-```text
-Swift API
-  → C / Objective-C header
-  → ObjC++ bridge
-  → C ABI
-  → C++ core
-  → AVFoundation / tracker / Metal renderer
-```
-
-要求：
-
-- AVFoundation 管理采集和方向
-- Metal 管理纹理、command buffer 和渲染目标
-- Swift 错误映射为稳定 `MakeupError`
-- 页面离开时明确调用 stop/dispose
-- 产物优先为 XCFramework，覆盖真机 arm64
-
-### 9.3 微信小程序
-
-当前默认路径是内置 FaceMesh + WebGL；仍保留 capability probe 和可注入 tracker 以适配不同基础库：
-
-```text
-微信宿主工厂
+微信小程序公开 API
+  → 微信相机帧与权限适配
   → 内置 FaceMesh tracker
-  → WASM C ABI + 上游 shader WebGL
+  → WASM C ABI + 上游 shader WebGL renderer
        或
-  → 等价 TypeScript core + WebGL fallback
+  → 等价 TypeScript/JavaScript core + WebGL fallback
 ```
 
-必须单独验证：
+适配层负责相机帧格式、方向和镜像归一化，加载内置 FaceMesh 模型与 shader/纹样资源，管理 WebGL context，并将 `capture()` 导出为临时图片路径。页面隐藏、权限拒绝、无脸、多人脸、资源失败和上下文丢失都必须进入明确状态。
 
-- 相机组件或相机帧接口
-- WASM 加载和内存限制
-- WebGL context、纹理上传和 shader 编译
-- FaceMesh 运行时和模型加载
-- 前置镜像、导出图片方向
-- 页面隐藏和重新进入后的资源恢复
-
-H5 可作为开发联调适配器，但不能替代微信小程序真机验收。
+H5 仅可作为开发联调适配器，不能替代微信小程序真机验收。
 
 ## 10. 渲染方案
 
@@ -656,8 +605,6 @@ ctest --test-dir build --output-on-failure
 ```text
 MAKEUP_BUILD_TESTS
 MAKEUP_BUILD_EXAMPLES
-MAKEUP_BUILD_ANDROID
-MAKEUP_BUILD_IOS
 MAKEUP_BUILD_WASM
 ```
 
@@ -670,10 +617,8 @@ CI 至少包含：
 3. 核心单元测试和 fake port 测试。
 4. ASan/UBSan。
 5. clang-format 和静态分析。
-6. Android NDK 构建。
-7. iOS/XCFramework 构建。
-8. WASM 或 TypeScript binding 构建。
-9. manifest 哈希和许可证检查。
+6. WASM 或 TypeScript binding 构建。
+7. manifest 哈希和许可证检查。
 
 真机测试不应伪装成普通 CI 通过项，应保存带设备信息的独立 capability report。
 
@@ -700,7 +645,7 @@ CI 至少包含：
 
 ### 14.2 合同测试
 
-对 Android、iOS 和小程序绑定使用同一套行为案例：
+对 WASM、TS/JS fallback 和微信宿主工厂使用同一套行为案例：
 
 - 同一参数产生同一归一化结果
 - `dewy` 始终映射为 `glossy`
@@ -708,24 +653,20 @@ CI 至少包含：
 - 前置镜像后的左右方向一致
 - 捕获结果携带同一版本和参数快照
 
-### 14.3 真机验收
+### 14.3 微信真机验收
 
-每个平台至少记录：
+每台设备至少记录：
 
-- 设备型号
-- 系统或小程序基础库版本
-- SDK 构建版本
-- renderer backend
-- tracker backend
-- 首帧耗时
-- 持续帧率
-- 内存峰值
+- 设备型号、系统版本和微信基础库版本
+- SDK、WASM、manifest 和模型版本
+- renderer backend 和 tracker backend
+- 首帧耗时、持续帧率和内存峰值
 - 相机权限拒绝恢复
 - 无脸和多人脸行为
-- context loss 恢复
+- WebGL context loss 恢复
 - 页面离开后的资源释放
 
-第一验收门槛是三端单类口红闭环，不以 H5、静态图或 mock 结果替代。
+第一验收门槛是微信小程序单类口红闭环，不以 H5、静态图或 mock 结果替代。
 
 ## 15. 分阶段实施计划
 
@@ -751,25 +692,23 @@ CI 至少包含：
 - fake camera/tracker/renderer/resource ports
 - 核心单元测试
 
-### 阶段 2：平台能力探针
+### 阶段 2：微信平台能力探针
 
 产出：
 
-- Android probe
-- iOS probe
-- 小程序 probe
+- 微信小程序 camera、FaceMesh、WebGL、WASM probe
 - 设备能力矩阵
-- 模型加载和 WebGL/WASM 可行性报告
+- 模型加载、shader 编译和当前帧导出报告
 
-### 阶段 3：三端口红闭环
+### 阶段 3：小程序口红闭环
 
 产出：
 
-- 三端绑定最小版本
+- WASM、TS/JS 和宿主工厂 binding
 - 口红 mask 和颜色混合
 - 当前帧捕获
 - 资源释放和失败恢复
-- 三端真机验收记录
+- 微信真机验收记录
 
 ### 阶段 4：业务接入
 
@@ -800,7 +739,7 @@ CI 至少包含：
 | 小程序无法稳定提供帧或 WebGL | 无法完成实时闭环 | 先做 capability probe；保留同 API 的 TS fallback |
 | WASM 性能不足 | 掉帧、发热、内存高 | 核心只保留数据和编排；渲染使用平台 WebGL |
 | 模型加载过慢 | 首次进入等待时间长 | manifest 缓存、进度事件和分层加载 |
-| 三端镜像规则不同 | 左右妆效错位 | 统一归一化坐标并加入跨端合同测试 |
+| WASM、TS/JS 与宿主镜像规则不同 | 左右妆效错位 | 统一归一化坐标并加入绑定合同测试 |
 | 资源版本不一致 | 历史成图无法解释 | 保存 SDK、模型、manifest 和纹样版本 |
 | 页面离开时资源未释放 | 内存泄漏和摄像头占用 | dispose 幂等、token 失效和平台生命周期测试 |
 | 上游算法或资源许可不清晰 | 无法发布 | 固定上游提交、记录许可证和允许复用清单 |
