@@ -47,7 +47,7 @@ export function sha256Hex(bytes: ArrayBuffer, digest?: MakeupSdkConfig['sha256']
 export function normalizeWechatFrame(frame: unknown): MakeupFrame;
 export function normalizeFaceMeshResult(results: unknown, frame?: MakeupFrame): TrackingResult;
 export function createWechatFaceMeshTracker(options?: { create?: Function; estimate?: Function; reset?: Function; dispose?: Function; options?: Record<string, unknown>; probe?: Function }): MakeupSdkConfig['tracker'];
-export function createWechatOpenMakeupResourcePort(options?: { readFile?: Function; downloadFile?: Function; baseUrl?: string }): MakeupSdkConfig['resources'] & { getManifest(): WasmManifest | undefined; resolve(path: string): string };
+export function createWechatOpenMakeupResourcePort(options?: { readFile?: Function; downloadFile?: Function; baseUrl?: string }): MakeupSdkConfig['resources'] & { getManifest(): WasmManifest | undefined; resolve(path: string): string; loadAsset(path: string): Promise<ArrayBuffer | ArrayBufferView | unknown> };
 export function createWechatOpenMakeupAssetLoader(options?: { readFile?: Function; downloadFile?: Function; baseUrl?: string }): (path: string) => Promise<ArrayBuffer | ArrayBufferView | unknown>;
 export function createWechatOpenMakeupTextureLoader(options?: { createImage?: Function; resolveImage?: Function; baseUrl?: string }): (path: string) => Promise<unknown>;
 export function createWebGlMakeupRenderer(options?: { gl?: unknown; canvas?: unknown; canvasToTempFilePath?: Function; clear?: boolean; supportedEffects?: EffectCategory[]; loadPatternTexture?: Function }): MakeupSdkConfig['renderer'] & { supportedEffects: EffectCategory[] };

@@ -8,5 +8,6 @@
 `third_party/openmakeup/LICENSE`。
 
 上游源码依赖浏览器 DOM、Three.js 和 MediaPipe 全局对象，不能直接在微信小程序中运行。
-小程序适配层必须保持上游类别、纹样、材质和 morph 语义，同时将相机、FaceMesh、WebGL
-和资源加载替换为微信宿主实现。
+本移植保留上游的类别、纹样、材质、shader、468 点网格和 morph 语义；
+`openmakeup-webgl-renderer.js` 用无 Three.js 的 glTF/WebGL 实现替换 Three.js 场景，
+`wechat-adapters.js` 则把相机、FaceMesh、图片和资源加载接到微信宿主回调。
