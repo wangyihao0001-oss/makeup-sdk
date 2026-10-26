@@ -11,7 +11,7 @@
 - 将 OpenMakeupSDK 的浏览器能力重写为可在微信小程序运行的 WASM/TypeScript/WebGL 链路；H5 只作为对照和开发联调。
 - 提供 TypeScript/JavaScript 小程序 binding，避免业务方直接接触内部端口。
 - 共享核心只处理帧、关键点、妆容层、资源和生命周期。
-- 首先完成小程序口红真实端闭环，再扩展上游其余妆效。
+- 代码级完成上游六类妆效、FaceMesh、网格和 morph 移植；真实设备仍以口红闭环作为首个验收门槛。
 - 让最终成图、参数、纹样 ID、质感、SDK/清单版本来自同一帧和同一状态。
 
 **Non-Goals:**
@@ -31,7 +31,7 @@
 - `bindings/miniprogram/`：TypeScript/JavaScript API、小程序相机/渲染/模型适配；不得把小程序对象泄漏到核心。
 - `bindings/h5/`：仅用于 H5 开发和能力对照，不能替代移动端或小程序真机验收。
 
-产品 `MakeupFacade` 继续是页面唯一入口。它把页面的六类参数转换成 SDK 参数，并把 SDK 状态转换为现有 `MakeupState` 文案。`morph`、模糊和自动选色按上游移植进度逐步开放。
+产品 `MakeupFacade` 继续是页面唯一入口。它把页面的六类参数转换成 SDK 参数，并把 SDK 状态转换为现有 `MakeupState` 文案。SDK 已提供 pattern、morph、wireframe 和 blur；页面是否开放由业务产品状态控制。
 
 ### 2. 端口契约
 
@@ -53,7 +53,7 @@ C++ 核心只负责数据结构、参数校验、纹样清单、坐标转换、�
 
 ### 5. 渲染与资源策略
 
-首个渲染器先实现一个口红 mask，再按 OpenMakeupSDK 的顺序迁移其余材质和类别。核心只提交统一的 effect graph；微信 WebGL 对象不能泄漏到核心。模型、shader 和纹样使用 manifest 和静态资源版本并缓存。资源缺失时保持已成功的其他层并返回可识别错误。
+小程序 renderer 读取上游 `face.glb` 的 468 点网格和 UV 通道，编译六类上游 shader，并使用 manifest 缓存模型、shader 和纹样。核心只提交统一的 effect graph；微信 WebGL 对象不能泄漏到核心。资源缺失时保持已成功的其他层并返回可识别错误。
 
 ### 6. 页面和宿主接入
 

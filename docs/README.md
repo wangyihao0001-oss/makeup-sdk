@@ -15,7 +15,8 @@
 - [`specs/rewrite-makeup-sdk/specs/makeup-sdk/spec.md`](specs/rewrite-makeup-sdk/specs/makeup-sdk/spec.md)：可验证的 SDK 行为规格。
 
 小程序 binding 位于 `bindings/miniprogram/src/`，提供 WASM 优先、TS/JS fallback、
-资源缓存、WebGL 口红 renderer 和设备能力探针。
+内置 FaceMesh tracker、468 点网格解析、六类上游 shader renderer、资源缓存、微信宿主
+一键工厂和设备能力探针。真实设备能力以 `docs/compatibility/devices.yaml` 为准。
 
 发布工程化入口：
 

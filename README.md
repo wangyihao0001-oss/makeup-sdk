@@ -2,7 +2,7 @@
 
 基于 OpenMakeupSDK 重写的微信小程序试妆 SDK 项目。当前交付目标只包含微信小程序；Android 和 iOS 绑定暂时冻结，不作为发布和验收条件。
 
-当前版本包含 C++17 共享核心、稳定 C ABI、standalone WASM 构建和小程序 JS/TS binding。摄像头采集、人脸关键点和平台 GPU 对象仍由各端口注入。
+当前版本包含 C++17 共享核心、稳定 C ABI、standalone WASM 构建和可发布的小程序 JS/TS binding。小程序包内置 FaceMesh 资源、468 点网格解析、六类妆效 shader、WASM loader、微信相机帧/纹理/资源适配器和一键宿主工厂。
 
 ## 目录
 
@@ -42,14 +42,11 @@ v2 的 C++ 端口契约位于 `core/include/makeup_sdk/makeup_sdk_v2_ports.h`，
 `makeup_sdk_v2_fake_ports_test` 使用确定性的 fake 实现验证启动/停止、逐帧追踪、
 渲染后捕获、资源版本校验和释放行为；端口暂不暴露到 C ABI。
 
-当前 v2 仍是无 renderer 的共享核心骨架：能力报告中的六类妆效均为不支持，
-`apply()` 返回 `MK2_STATUS_UNSUPPORTED_EFFECT`，`capture()` 会以
-`MK2_STATUS_RENDERER_UNAVAILABLE` 完成失败事件，不生成图片。
-
 `core/include/makeup_sdk/makeup_sdk_v2_runtime.h` 提供 C++ 端口编排、catalog、资源
 版本校验和 `dewy → glossy` 质感归一化。小程序 binding 已提供同语义的 TS/JS fallback
 和可校验的 WASM loader；`runtime: 'auto'` 在 WASM 加载失败时记录原因并降级 TS/JS，
-`runtime: 'wasm'` 会直接返回加载错误。只有真实端口全部初始化后才报告口红可用。
+`runtime: 'wasm'` 会直接返回加载错误。完整 WebGL renderer 使用上游 `face.glb`、UV
+通道和 shader；只有真实相机、FaceMesh、WebGL、资源和捕获能力全部初始化后才报告妆效可用。
 
 ## 发布产物
 
@@ -61,8 +58,8 @@ WASM/npm 包、SHA256SUMS、兼容性清单和性能报告。Linux/WASM/Node 构
 ## 当前边界
 
 - `core` 不接触摄像头、窗口、平台 UI 或 GPU 对象。
-- v2 会校验帧尺寸、像素格式、数据长度、方向、镜像和追踪置信度；当前只接受 RGBA8/BGRA8。
-- 平台层负责采集视频帧、提供关键点/追踪结果，并连接平台渲染后端。
-- 第一条可验收链路是微信小程序真实设备上的单色口红效果；通过后再迁移其余五类妆效和脸型重塑。
-- OpenMakeupSDK 的上游功能和资源是移植目标，不以当前最小口红 renderer 作为最终功能范围。
+- 核心校验帧尺寸、像素格式、数据长度、方向、镜像和追踪置信度；微信适配器额外支持 RGB/YUV 帧转 RGBA8。
+- `createWechatMakeupSdk()` 自动组装相机、资源、纹理、FaceMesh tracker、WebGL renderer 和 SDK session。
+- 上游六类妆效、pattern 查询、morph、wireframe 和 blur 已完成代码级移植；真实微信设备的性能、GPU 和捕获结果仍待验收。
+- 业务页面仍需接入真实页面生命周期和保存流程；实时帧只在设备侧处理，不上传。
 

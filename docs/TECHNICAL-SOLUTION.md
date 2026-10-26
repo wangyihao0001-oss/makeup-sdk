@@ -1,14 +1,14 @@
 # Makeup SDK 技术方案
 
-版本：v1.0  
-日期：2026-10-23  
-状态：设计基线，待分阶段实现
+版本：v1.1
+日期：2026-10-26
+状态：代码级小程序移植已完成，真实微信设备验收待补
 
 ## 1. 文档目的
 
 本文为 Makeup SDK 重写项目的技术实施方案。当前交付范围已收敛为 OpenMakeupSDK 到微信小程序的重写；Android/iOS 章节保留为历史设计参考，不参与当前构建、发布和验收。
 
-本文针对当前仓库的实际状态编写：共享核心已提供 v1 同步 ABI 和 v2 C ABI 状态机、事件队列、帧校验及清理竞态回归测试；平台绑定、摄像头采集、人脸追踪、GPU 渲染、资源清单和真机验证尚未实现。
+本文针对当前仓库的实际状态编写：共享核心已提供 v1/v2 ABI、状态机、事件队列、帧校验及清理竞态回归测试；小程序已提供 WASM/TS-JS binding、内置 FaceMesh tracker、无 Three.js 的上游网格/shader renderer、微信宿主工厂和资源清单；真实设备验证仍未完成。
 
 ## 2. 建设目标
 
@@ -39,7 +39,7 @@
 5. 腮红
 6. 底妆
 
-首个生产验收只实现一类口红效果，先在微信真机完成闭环，再逐类迁移其他效果。
+代码级移植覆盖六类妆效；生产验收仍先以微信真机单色口红闭环作为门槛，再补齐其余类别的设备视觉和性能证据。
 
 ### 2.3 非目标
 
@@ -65,7 +65,7 @@
 - `renderers/README.md`：渲染器预留说明
 - `docs/specs/rewrite-makeup-sdk/`：重写规格和任务清单
 
-当前实现同时保留 v1 同步 ABI，并提供 v2 的宿主驱动生命周期、事件队列、帧校验和妆效清理状态机。v2 不创建 SDK worker thread，调用方通过 `pump(max_operations)` 推进队列并通过 `poll_event` 读取结果。v2 的稳定 C 数据契约位于 `makeup_sdk_v2.h`，C++ 端口契约位于 `makeup_sdk_v2_ports.h`，端口编排和 manifest/catalog 位于 `makeup_sdk_v2_runtime.h`，后者定义 camera/tracker/renderer/resource 四类注入边界。确定性的 fake port 合同测试覆盖启动/停止、逐帧追踪、渲染后捕获、资源版本失败和释放行为。小程序 binding 已提供 WASM 优先、TS/JS fallback、资源缓存、WebGL 口红 renderer 和能力探针；真实微信设备仍需接入平台对象完成真机验收。帧校验当前只接受 RGBA8/BGRA8，默认限制尺寸为 4096×4096，并校验方向、镜像、数据长度、时间戳和追踪置信度。
+当前实现同时保留 v1 同步 ABI，并提供 v2 的宿主驱动生命周期、事件队列、帧校验和妆效清理状态机。小程序 binding 提供 WASM 优先、TS/JS fallback、资源缓存、内置 FaceMesh、468 点 face.glb 解析、六类上游 shader renderer、pattern/morph、微信帧格式转换和一键宿主工厂。服务器回归为原生 6/6、WASM 2/2、小程序 18/18；真实微信设备仍需完成 capability report。帧校验支持 RGBA8/BGRA8，并由微信适配器把 RGB/YUV 转为 RGBA8。
 
 当前 ABI 还有两个需要尽快修正的契约问题：
 
@@ -501,13 +501,14 @@ Swift API
 
 ### 9.3 微信小程序
 
-先做 capability probe，再决定实现路径：
+当前默认路径是内置 FaceMesh + WebGL；仍保留 capability probe 和可注入 tracker 以适配不同基础库：
 
 ```text
-TypeScript API
-  → WASM C ABI + WebGL
+微信宿主工厂
+  → 内置 FaceMesh tracker
+  → WASM C ABI + 上游 shader WebGL
        或
-  → 等价 TypeScript core + WebGL
+  → 等价 TypeScript core + WebGL fallback
 ```
 
 必须单独验证：
@@ -523,9 +524,9 @@ H5 可作为开发联调适配器，但不能替代微信小程序真机验收�
 
 ## 10. 渲染方案
 
-### 10.1 首期口红
+### 10.1 上游六类妆效 renderer
 
-首期只实现一个口红 mask：
+当前无 Three.js WebGL renderer 使用上游 468 点网格和 shader。口红链路为：
 
 1. 追踪器输出嘴唇关键点。
 2. 核心生成统一口唇区域参数。
@@ -545,7 +546,7 @@ H5 可作为开发联调适配器，但不能替代微信小程序真机验收�
 - alpha 语义固定为 premultiplied 或 straight alpha，并写入版本协议
 - 输出图片方向和镜像状态显式记录
 
-### 10.3 后续六类妆效
+### 10.3 六类妆效验收
 
 每类妆效都必须有：
 
@@ -556,7 +557,7 @@ H5 可作为开发联调适配器，但不能替代微信小程序真机验收�
 - 设备支持能力
 - 单元测试和真机样本
 
-如果某个平台只支持口红，能力报告必须在用户开始会话前标记其他类别不支持。
+服务器合同测试已覆盖六类参数和 renderer 能力报告；真实微信设备仍需逐类记录 shader、帧率、内存和捕获结果。
 
 ## 11. 资源与版本管理
 

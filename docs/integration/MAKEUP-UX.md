@@ -43,14 +43,14 @@
 
 ## OpenMakeupSDK 对应关系与适配门槛
 
-参考：[仓库与说明](https://github.com/ehsanwwe/OpenMakeupSDK)、[实际 API 源码](https://github.com/ehsanwwe/OpenMakeupSDK/blob/main/src/OpenMakeup.js)、[类型声明](https://github.com/ehsanwwe/OpenMakeupSDK/blob/main/src/index.d.ts)、[许可文件](https://github.com/ehsanwwe/OpenMakeupSDK/blob/main/LICENSE)。核查日期 2026-10-20；尚未在本项目运行 SDK。
+参考：[仓库与说明](https://github.com/ehsanwwe/OpenMakeupSDK)、[实际 API 源码](https://github.com/ehsanwwe/OpenMakeupSDK/blob/main/src/OpenMakeup.js)、[类型声明](https://github.com/ehsanwwe/OpenMakeupSDK/blob/main/src/index.d.ts)、[许可文件](https://github.com/ehsanwwe/OpenMakeupSDK/blob/main/LICENSE)。本项目已固定上游提交 `12c5a8023aab0fcec7eef4fbdc0d1a29cf9989dd`，并在阿里云完成 SDK/WASM/binding 回归；真机视觉和性能仍待补录。
 
 - 六类映射为 lipstick / mascara / eyeline / eyeshadow / blush / foundation。眼线规范键是 `eyeline`；不要仅照 README 的英文名称拼接调用。
 - `apply(category,{color,pattern,finish})` 对应上色和款式；单类清除用 `clear(category)`，全部清除用 `clearAll()`。
 - 质感只应用于口红、眼影、腮红、底妆；睫毛、眼线不显示质感控制。具体质感效果和支持程度仍需样本实测。
 - `getPatterns(category)` 的实际返回值决定款式选项，不能把设计中的自然/纤长等示例名称当成 SDK 已有商品目录。参数保存使用纹理稳定 ID、版本和颜色，不使用展示排序充当稳定标识。
 - 已检查的公开 `apply` 接口没有独立的妆效浓度参数，因此本次不设计浓度滑杆。截图、前后对比、摄像头切换、保存和产品记录由接入层实现，不能宣称 SDK 已直接提供整套业务能力。
-- SDK 构造和类型依赖 HTMLVideoElement、HTMLCanvasElement、MediaPipe 与 WebGL/Three.js。不能直接认为可运行于 uni-app 微信小程序；H5 与小程序相机、渲染上下文和资源加载需分别验证。
+- 上游浏览器实现依赖 HTMLVideoElement、HTMLCanvasElement、MediaPipe 与 Three.js；本项目已用无 Three.js WebGL、内置 FaceMesh 资源和微信宿主适配器替换这些依赖。H5 仍不能替代小程序真机验证。
 - 接入前锁定版本与依赖、审查纹理资源及第三方许可、部署可控静态资源；验证 iOS/Android 微信环境的权限恢复、横竖屏、前后摄像头、内存、掉帧、追踪稳定和退出释放。不要在未验证时默认以 web-view 作为可用方案。
 
 ## 设计验收
