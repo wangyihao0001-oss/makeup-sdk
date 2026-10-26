@@ -1,5 +1,58 @@
 import { STATUS, SdkError } from './makeup-sdk.js';
 
+function frameBytes(data) {
+  if (data instanceof ArrayBuffer) return new Uint8Array(data);
+  if (ArrayBuffer.isView(data)) return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  return null;
+}
+
+function clampByte(value) { return Math.max(0, Math.min(255, Math.round(value))); }
+
+function rgb24ToRgba(bytes, width, height) {
+  const out = new Uint8Array(width * height * 4);
+  for (let i = 0, j = 0; i < width * height; i++, j += 3) {
+    out[i * 4] = bytes[j]; out[i * 4 + 1] = bytes[j + 1]; out[i * 4 + 2] = bytes[j + 2]; out[i * 4 + 3] = 255;
+  }
+  return out;
+}
+
+function yuv420ToRgba(bytes, width, height, format) {
+  const pixels = width * height;
+  const out = new Uint8Array(pixels * 4);
+  const chromaWidth = Math.ceil(width / 2);
+  const chromaHeight = Math.ceil(height / 2);
+  const chromaSize = chromaWidth * chromaHeight;
+  const nv = format === 'NV12' || format === 'NV21';
+  const ySize = pixels;
+  const uOffset = nv ? ySize : ySize;
+  const vOffset = nv ? ySize : ySize + chromaSize;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const yi = y * width + x;
+      let u; let v;
+      if (nv) {
+        const ci = (Math.floor(y / 2) * chromaWidth + Math.floor(x / 2)) * 2;
+        const first = bytes[uOffset + ci] ?? 128;
+        const second = bytes[uOffset + ci + 1] ?? 128;
+        u = format === 'NV12' ? first : second;
+        v = format === 'NV12' ? second : first;
+      } else {
+        const ci = Math.floor(y / 2) * chromaWidth + Math.floor(x / 2);
+        u = bytes[uOffset + ci] ?? 128;
+        v = bytes[vOffset + ci] ?? 128;
+      }
+      const yy = Math.max(0, bytes[yi] - 16);
+      const c = 1.164 * yy;
+      const o = yi * 4;
+      out[o] = clampByte(c + 1.596 * (v - 128));
+      out[o + 1] = clampByte(c - 0.392 * (u - 128) - 0.813 * (v - 128));
+      out[o + 2] = clampByte(c + 2.017 * (u - 128));
+      out[o + 3] = 255;
+    }
+  }
+  return out;
+}
+
 export function normalizeWechatFrame(raw = {}) {
   const data = raw.data ?? raw.bytes ?? raw.pixelData;
   const width = Number(raw.width ?? raw.frameWidth ?? 0);
@@ -7,7 +60,18 @@ export function normalizeWechatFrame(raw = {}) {
   const orientation = Number(raw.orientation ?? raw.rotation ?? raw.rotate ?? 0);
   const timestampNs = raw.timestampNs ?? (raw.timestamp != null ? BigInt(raw.timestamp) * 1000000n : 0n);
   const mirrored = Boolean(raw.mirrored ?? raw.isMirror ?? raw.mirror);
-  const pixelFormat = raw.pixelFormat ?? raw.format ?? 'RGBA8';
+  const declaredFormat = String(raw.pixelFormat ?? raw.format ?? 'RGBA8').toUpperCase();
+  let pixelFormat = declaredFormat;
+  let normalizedData = data;
+  const bytes = frameBytes(data);
+  if (bytes && (declaredFormat === 'RGB' || declaredFormat === 'RGB24')) {
+    normalizedData = rgb24ToRgba(bytes, width, height); pixelFormat = 'RGBA8';
+  } else if (bytes && ['I420', 'YUV420', 'NV12', 'NV21', 'YUV'].includes(declaredFormat)) {
+    normalizedData = yuv420ToRgba(bytes, width, height, declaredFormat === 'YUV' ? 'NV12' : declaredFormat); pixelFormat = 'RGBA8';
+  } else if (declaredFormat === 'RGB8') {
+    if (!bytes || bytes.byteLength !== width * height * 3) throw new SdkError(STATUS.FRAME_INVALID, 'RGB8 frame data size does not match dimensions');
+    normalizedData = rgb24ToRgba(bytes, width, height); pixelFormat = 'RGBA8';
+  }
   if (!data || !Number.isInteger(width) || !Number.isInteger(height)) {
     throw new SdkError(STATUS.FRAME_INVALID, 'WeChat frame width, height and data are required');
   }
@@ -18,7 +82,7 @@ export function normalizeWechatFrame(raw = {}) {
     pixelFormat: pixelFormat === 'BGRA' ? 'BGRA8' : pixelFormat,
     orientation: ((orientation % 360) + 360) % 360,
     mirrored,
-    data
+    data: normalizedData
   };
 }
 

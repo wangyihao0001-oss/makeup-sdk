@@ -177,6 +177,15 @@ test('normalizes WeChat frame aliases before the core validator', () => {
   assert.equal(normalized.mirrored, true);
 });
 
+test('converts common WeChat RGB and YUV camera frame formats to RGBA8', () => {
+  const rgb = normalizeWechatFrame({ width: 1, height: 1, format: 'RGB', data: new Uint8Array([12, 34, 56]) });
+  assert.equal(rgb.pixelFormat, 'RGBA8');
+  assert.deepEqual([...rgb.data], [12, 34, 56, 255]);
+  const yuv = normalizeWechatFrame({ width: 2, height: 2, format: 'NV12', data: new Uint8Array([128, 128, 128, 128, 128, 128]) });
+  assert.equal(yuv.data.byteLength, 16);
+  assert.equal(yuv.pixelFormat, 'RGBA8');
+});
+
 test('normalizes MediaPipe-style results to the tracker contract', () => {
   const points = Array.from({ length: 468 }, (_, index) => ({ x: index / 468, y: 0.5, z: 0 }));
   const tracking = normalizeFaceMeshResult({ multiFaceLandmarks: [points] }, frame);
