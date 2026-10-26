@@ -9,6 +9,7 @@ import {
   SdkError,
   create,
   OpenMakeupCompat,
+  createWechatBundledFaceMeshTracker,
   createWechatMakeupSdk,
   normalizeFinish,
   normalizeFaceMeshResult,
@@ -255,4 +256,21 @@ test('wires a complete WeChat host session without an OpenMakeupSDK dependency',
   await sdk.start();
   assert.equal(typeof cameraCallback, 'function');
   await sdk.dispose();
+});
+
+test('uses the bundled FaceMesh tracker path by default when a class is supplied', async () => {
+  const points = Array.from({ length: 468 }, (_, i) => ({ x: i / 468, y: 0.5, z: 0 }));
+  class FakeFaceMesh {
+    onResults(callback) { this.callback = callback; }
+    async setOptions() {}
+    async send() { this.callback({ multiFaceLandmarks: [points] }); }
+    async close() {}
+  }
+  const canvas = { getContext() { return { putImageData() {} }; } };
+  const tracker = createWechatBundledFaceMeshTracker({ faceMeshClass: FakeFaceMesh, canvasFactory: async () => canvas });
+  assert.equal(await tracker.initialize(1), STATUS.OK);
+  const result = await tracker.estimate({ width: 2, height: 2, timestampNs: 9n, data: new Uint8Array(16) });
+  assert.equal(result.faceCount, 1);
+  assert.equal(result.landmarks.points.length, 468);
+  await tracker.dispose();
 });

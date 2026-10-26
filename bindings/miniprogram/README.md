@@ -27,6 +27,11 @@ morph targets，编译上游六类妆效 shader，按 FaceMesh 每帧更新网�
 真实微信项目需要把小程序 camera、FaceMesh、WebGL canvas 和临时文件导出 API 通过
 `src/wechat-adapters.js` 适配到这些端口；模块加载时不会读取 `wx`、`window` 或 `document`。
 
+`createWechatMakeupSdk()` 会默认创建包内的 FaceMesh tracker，并从
+`assets/mediapipe-face-mesh/` 加载模型资源。若页面没有预加载 `FaceMesh` 类，只需提供
+`faceMeshScriptLoader`；若运行时不能直接接收 RGBA canvas，则提供
+`faceMeshCanvasFactory`。业务项目不需要引用 OpenMakeupSDK。
+
 典型接入方式是把资源端口的 `loadAsset` 传给 renderer，再用宿主 canvas 的图片工厂提供
 `loadTexture`：
 

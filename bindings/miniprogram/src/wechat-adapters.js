@@ -205,6 +205,9 @@ export async function createWechatMakeupSdk({
   faceMeshEstimate,
   faceMeshReset,
   faceMeshDispose,
+  faceMeshClass,
+  faceMeshScriptLoader,
+  faceMeshCanvasFactory,
   faceMeshOptions = {},
   assetsBaseUrl = '',
   wasmUrl,
@@ -229,13 +232,9 @@ export async function createWechatMakeupSdk({
       return async () => listener?.stop?.();
     }
   });
-  const tracker = faceMesh || createWechatFaceMeshTracker({
-    create: faceMeshFactory,
-    estimate: faceMeshEstimate,
-    reset: faceMeshReset,
-    dispose: faceMeshDispose,
-    options: faceMeshOptions
-  });
+  const tracker = faceMesh || (faceMeshFactory || faceMeshEstimate
+    ? createWechatFaceMeshTracker({ create: faceMeshFactory, estimate: faceMeshEstimate, reset: faceMeshReset, dispose: faceMeshDispose, options: faceMeshOptions })
+    : createWechatBundledFaceMeshTracker({ faceMeshClass, loadScript: faceMeshScriptLoader, canvasFactory: faceMeshCanvasFactory, options: faceMeshOptions }));
   const textureLoader = createWechatOpenMakeupTextureLoader({
     createImage: createImage ?? (() => canvas?.createImage?.()),
     resolveImage,
@@ -321,6 +320,42 @@ export function createWechatFaceMeshTracker({ create, estimate, reset, dispose, 
     async dispose() { if (dispose) await dispose(runtime); else await runtime?.close?.(); runtime = undefined; return STATUS.OK; },
     probe() { return probe?.() ?? Boolean(create || estimate); }
   };
+}
+
+/** Default tracker backed by the bundled MediaPipe FaceMesh assets. */
+export function createWechatBundledFaceMeshTracker({ faceMeshClass, loadScript, locateFile, canvasFactory, options = {} } = {}) {
+  let loadedClass = faceMeshClass;
+  const create = async () => {
+    if (!loadedClass && typeof globalThis !== 'undefined') loadedClass = globalThis.FaceMesh;
+    if (!loadedClass && typeof loadScript === 'function') {
+      const loaded = await loadScript({
+        script: 'assets/mediapipe-face-mesh/face_mesh.js',
+        locateFile: locateFile ?? ((file) => `assets/mediapipe-face-mesh/${file}`)
+      });
+      loadedClass = loaded?.FaceMesh ?? loaded ?? (typeof globalThis !== 'undefined' ? globalThis.FaceMesh : undefined);
+    }
+    if (typeof loadedClass !== 'function') throw new SdkError(STATUS.TRACKER_UNAVAILABLE, 'Bundled FaceMesh is not loaded; provide faceMeshClass or loadScript');
+    const mesh = new loadedClass({ locateFile: locateFile ?? ((file) => `assets/mediapipe-face-mesh/${file}`) });
+    let pending;
+    mesh.onResults?.((result) => { pending?.(result); pending = undefined; });
+    return {
+      async estimate(frame) {
+        if (typeof canvasFactory !== 'function') throw new SdkError(STATUS.TRACKER_UNAVAILABLE, 'A canvasFactory is required for bundled FaceMesh input');
+        const input = await canvasFactory(frame.width, frame.height);
+        const context = input?.getContext?.('2d');
+        if (!context?.putImageData) throw new SdkError(STATUS.TRACKER_UNAVAILABLE, 'FaceMesh canvas must expose a 2D context');
+        const rgba = frameBytes(frame.data);
+        if (!rgba || rgba.byteLength !== frame.width * frame.height * 4) throw new SdkError(STATUS.FRAME_INVALID, 'FaceMesh requires RGBA8 frame data');
+        const imageData = typeof ImageData === 'function' ? new ImageData(new Uint8ClampedArray(rgba), frame.width, frame.height) : { data: new Uint8ClampedArray(rgba), width: frame.width, height: frame.height };
+        context.putImageData(imageData, 0, 0);
+        const result = await new Promise((resolve, reject) => { pending = resolve; Promise.resolve(mesh.send({ image: input })).catch(reject); });
+        return result;
+      },
+      async setOptions(value) { await mesh.setOptions?.(value); },
+      async close() { await mesh.close?.(); pending = undefined; }
+    };
+  };
+  return createWechatFaceMeshTracker({ create, options, probe: () => Boolean(faceMeshClass || loadScript || globalThis?.FaceMesh) });
 }
 
 export function createWechatResourcePort({ loadManifest, loadPattern, release, probe }) {
