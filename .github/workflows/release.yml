@@ -37,25 +37,9 @@ jobs:
           name: aliyun-linux-artifacts
           path: release/aliyun
 
-  ios:
-    name: Build iOS XCFramework
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build
-        env:
-          MAKEUP_SDK_VERSION: ${{ github.ref_name }}
-        run: |
-          export MAKEUP_SDK_VERSION="${MAKEUP_SDK_VERSION#v}"
-          bash bindings/ios/scripts/build-xcframework.sh
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ios-artifacts
-          path: release/ios/MakeupSDK-*.xcframework.zip
-
   publish:
     name: Create GitHub Release
-    needs: [aliyun, ios]
+    needs: [aliyun]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,10 +50,6 @@ jobs:
         with:
           name: aliyun-linux-artifacts
           path: release/aliyun
-      - uses: actions/download-artifact@v4
-        with:
-          name: ios-artifacts
-          path: release/ios
       - name: Finalize checksums and reports
         env:
           MAKEUP_SDK_VERSION: ${{ github.ref_name }}

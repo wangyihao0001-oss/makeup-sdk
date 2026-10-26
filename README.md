@@ -1,6 +1,6 @@
 # Makeup SDK
 
-面向 Android、iOS 和小程序的通用试妆 SDK 重写项目。
+基于 OpenMakeupSDK 重写的微信小程序试妆 SDK 项目。当前交付目标只包含微信小程序；Android 和 iOS 绑定暂时冻结，不作为发布和验收条件。
 
 当前版本包含 C++17 共享核心、稳定 C ABI、standalone WASM 构建和小程序 JS/TS binding。摄像头采集、人脸关键点和平台 GPU 对象仍由各端口注入。
 
@@ -8,8 +8,6 @@
 
 ```text
 core/                 共享 C++ 核心与 C ABI
-bindings/android/     Android 集成边界（JNI/NDK）
-bindings/ios/         iOS 集成边界（Swift/Objective-C）
 bindings/miniprogram/ 小程序集成边界（JS/TS/WASM）
 renderers/            各平台渲染器预留目录
 examples/             本地示例
@@ -55,9 +53,8 @@ v2 的 C++ 端口契约位于 `core/include/makeup_sdk/makeup_sdk_v2_ports.h`，
 
 ## 发布产物
 
-版本由根目录 `VERSION` 和 `vX.Y.Z` Git tag 统一管理。GitHub Release 会归档 Android
-AAR、iOS XCFramework、WASM/npm 包、SHA256SUMS、兼容性清单和性能报告。Linux/Android/
-WASM 由阿里云构建，iOS 由 GitHub Actions macOS runner 构建。
+版本由根目录 `VERSION` 和 `vX.Y.Z` Git tag 统一管理。GitHub Release 只归档小程序
+WASM/npm 包、SHA256SUMS、兼容性清单和性能报告。Linux/WASM/Node 构建在阿里云服务器完成。
 
 发布工程化说明见 [`docs/RELEASE.md`](docs/RELEASE.md) 和 [`docs/BUILDING.md`](docs/BUILDING.md)。
 
@@ -66,5 +63,6 @@ WASM 由阿里云构建，iOS 由 GitHub Actions macOS runner 构建。
 - `core` 不接触摄像头、窗口、平台 UI 或 GPU 对象。
 - v2 会校验帧尺寸、像素格式、数据长度、方向、镜像和追踪置信度；当前只接受 RGBA8/BGRA8。
 - 平台层负责采集视频帧、提供关键点/追踪结果，并连接平台渲染后端。
-- 第一条可验收链路是三端真实设备上的单色口红效果。
+- 第一条可验收链路是微信小程序真实设备上的单色口红效果；通过后再迁移其余五类妆效和脸型重塑。
+- OpenMakeupSDK 的上游功能和资源是移植目标，不以当前最小口红 renderer 作为最终功能范围。
 

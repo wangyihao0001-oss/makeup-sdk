@@ -31,21 +31,8 @@ jobs:
       - run: npm --prefix bindings/miniprogram test
       - run: cd bindings/miniprogram && npm pack --dry-run
 
-  ios:
-    name: iOS XCFramework
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build XCFramework
-        run: bash bindings/ios/scripts/build-xcframework.sh
-      - name: Verify slices
-        run: |
-          test -f release/ios/MakeupSDK.xcframework/Info.plist
-          plutil -p release/ios/MakeupSDK.xcframework/Info.plist | grep -q arm64
-          plutil -p release/ios/MakeupSDK.xcframework/Info.plist | grep -q x86_64
-
   aliyun:
-    name: Aliyun Android, WASM and remote benchmarks
+    name: Aliyun WASM and remote benchmarks
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:

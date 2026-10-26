@@ -19,7 +19,6 @@ ssh "${ALIYUN_USER}@${ALIYUN_HOST}" "
   set -euo pipefail
   cd '${REMOTE_DIR}'
   printf '%s\n' '${VERSION}' > VERSION
-  bash scripts/android/install-toolchain.sh
   cmake -S . -B build-native -DCMAKE_BUILD_TYPE=Release
   cmake --build build-native -j2
   ctest --test-dir build-native --output-on-failure
@@ -27,7 +26,6 @@ ssh "${ALIYUN_USER}@${ALIYUN_HOST}" "
   cmake --build build-wasm -j2
   ctest --test-dir build-wasm --output-on-failure
   npm --prefix bindings/miniprogram test
-  MAKEUP_SDK_VERSION='${VERSION}' bash scripts/android/build-aar.sh
   mkdir -p release
   cp bindings/miniprogram/dist/makeup_sdk_core.wasm release/makeup_sdk_core-${VERSION}.wasm
   cp bindings/miniprogram/dist/manifest.json release/makeup_sdk_core-${VERSION}.manifest.json

@@ -19,17 +19,7 @@ package_file="$(find "${RELEASE_DIR}" -maxdepth 1 -name 'wangyihao0001-makeup-sd
 test -n "${package_file}"
 mv "${package_file}" "${RELEASE_DIR}/makeup-sdk-miniprogram-${VERSION}.tgz"
 
-if [ -f "${RELEASE_DIR}/ios/MakeupSDK-${VERSION}.xcframework.zip" ]; then
-  cp "${RELEASE_DIR}/ios/MakeupSDK-${VERSION}.xcframework.zip" "${RELEASE_DIR}/"
-fi
-
-if [ -f "${RELEASE_DIR}/makeup-sdk-android-${VERSION}.aar" ]; then
-  true
-fi
-
 (cd "${RELEASE_DIR}" && sha256sum \
-  "makeup-sdk-android-${VERSION}.aar" \
-  "MakeupSDK-${VERSION}.xcframework.zip" \
   "makeup-sdk-miniprogram-${VERSION}.tgz" \
   "makeup_sdk_core-${VERSION}.wasm" \
   "makeup_sdk_core-${VERSION}.manifest.json" \

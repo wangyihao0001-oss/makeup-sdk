@@ -1,40 +1,6 @@
 schema_version: 1
 sdk_version: 0.1.0
 devices:
-  - id: android-pending
-    platform: android
-    model: pending
-    os_version: pending
-    host_version: pending
-    sdk_version: 0.1.0
-    status: pending
-    abi: [arm64-v8a, x86_64]
-    camera: pending
-    tracker: pending
-    renderer: pending
-    first_frame_ms: null
-    sustained_fps: null
-    memory_mb: null
-    limitations: [真实设备型号和运行记录待补录]
-    verified_at: null
-    report: null
-  - id: ios-pending
-    platform: ios
-    model: pending
-    os_version: pending
-    host_version: pending
-    sdk_version: 0.1.0
-    status: pending
-    abi: [arm64, simulator-arm64]
-    camera: pending
-    tracker: pending
-    renderer: pending
-    first_frame_ms: null
-    sustained_fps: null
-    memory_mb: null
-    limitations: [真实设备型号和运行记录待补录]
-    verified_at: null
-    report: null
   - id: wechat-pending
     platform: wechat-miniprogram
     model: pending

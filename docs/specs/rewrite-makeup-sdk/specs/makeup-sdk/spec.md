@@ -19,11 +19,11 @@ needed across bindings.
 
 ## Requirement: Shared cross-platform runtime
 
-The SDK SHALL expose a platform-neutral core shared by Android, iOS and mini-program bindings. Shared modules SHALL NOT access `window`, `document`, `HTMLVideoElement`, `HTMLCanvasElement`, Android views, iOS UIKit/Metal objects or Three.js globals.
+The SDK SHALL expose a platform-neutral core for the mini-program binding. Shared modules SHALL NOT access `window`, `document`, `HTMLVideoElement`, `HTMLCanvasElement`, or Three.js globals.
 
 The SDK SHALL receive camera frames, face landmarks, render targets and asset loading through injected ports. Platform adapters MAY use Android CameraX, iOS AVFoundation, WeChat camera APIs or platform GPU APIs, but those APIs MUST remain outside the shared core.
 
-The SDK SHALL publish equivalent lifecycle, parameter, error and capture semantics through Kotlin/Java, Swift/Objective-C and TypeScript/JavaScript bindings.
+The SDK SHALL publish lifecycle, parameter, error and capture semantics through the TypeScript/JavaScript mini-program binding.
 
 #### Scenario: Platform binding loads without foreign runtime globals
 
@@ -62,7 +62,7 @@ The adapter SHALL map the product finish `dewy` to the engine finish `glossy`, p
 
 ## Requirement: Real frame pipeline on three platforms
 
-The first production-capable milestone SHALL prove one lipstick effect on one supported Android device, one supported iOS device and one supported WeChat mini-program device: camera frame acquisition, face landmark tracking, platform GPU compositing, current-frame capture and resource release.
+The first production-capable milestone SHALL prove one lipstick effect on one supported WeChat mini-program device: camera frame acquisition, face landmark tracking, WebGL compositing, current-frame capture and resource release.
 
 The pipeline SHALL keep live frames on the device. Only an explicit save action MAY upload the captured image through the existing private asset flow.
 

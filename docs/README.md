@@ -1,6 +1,6 @@
 # SDK 文档索引
 
-这些资料从 `dress` 业务仓库迁移而来，SDK 项目从这里维护共享核心、平台绑定和业务接入契约。迁移日期：2026-10-23。
+这些资料从 `dress` 业务仓库迁移而来。当前 SDK 项目只维护 OpenMakeupSDK 到微信小程序的重写链路；Android/iOS 目录保留但暂不构建。迁移日期：2026-10-23。
 
 ## 设计与规格
 
@@ -10,7 +10,7 @@
   `core/include/makeup_sdk/makeup_sdk_v2_runtime.h` 提供端口编排、catalog
   和质感归一化。
 - [`specs/rewrite-makeup-sdk/proposal.md`](specs/rewrite-makeup-sdk/proposal.md)：重写目标、范围和影响。
-- [`specs/rewrite-makeup-sdk/design.md`](specs/rewrite-makeup-sdk/design.md)：C++ 共享核心、C ABI、三端绑定和渲染边界。
+- [`specs/rewrite-makeup-sdk/design.md`](specs/rewrite-makeup-sdk/design.md)：C++ 共享核心、C ABI、小程序绑定和渲染边界。
 - [`specs/rewrite-makeup-sdk/tasks.md`](specs/rewrite-makeup-sdk/tasks.md)：实施工作包和验收门槛。
 - [`specs/rewrite-makeup-sdk/specs/makeup-sdk/spec.md`](specs/rewrite-makeup-sdk/specs/makeup-sdk/spec.md)：可验证的 SDK 行为规格。
 
@@ -19,7 +19,7 @@
 
 发布工程化入口：
 
-- [`BUILDING.md`](BUILDING.md)：阿里云、Android、WASM、npm 和 macOS 构建。
+- [`BUILDING.md`](BUILDING.md)：阿里云、WASM 和 npm 构建。
 - [`RELEASE.md`](RELEASE.md)：SemVer、GitHub Release、校验和回滚流程。
 - [`COMPATIBILITY.md`](COMPATIBILITY.md)：设备清单和 capability report 规则。
 - [`PERFORMANCE.md`](PERFORMANCE.md)：服务器和真机性能基线规则。

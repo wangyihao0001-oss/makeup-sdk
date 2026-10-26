@@ -3,7 +3,7 @@
 ## 分层
 
 ```text
-平台 API（Kotlin/Swift/TypeScript）
+平台 API（TypeScript/JavaScript 小程序 binding）
         ↓
 平台绑定（JNI / Objective-C / JS-WASM）
         ↓
@@ -28,7 +28,7 @@
 ## 后续工作
 
 - 增加帧输入、关键点输入和统一坐标/像素格式。
-- 为 Android、iOS、mini-program 分别实现 GPU 后端。
+- 为微信小程序实现 WASM/TypeScript + WebGL 后端；Android/iOS 后端暂不在当前范围。
 - 用真实单色口红链路替换当前参数存储骨架。
 - 补充 ABI 兼容性、性能和跨端视觉一致性测试。
 
