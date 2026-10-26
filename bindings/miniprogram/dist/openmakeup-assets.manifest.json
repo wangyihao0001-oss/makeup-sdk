@@ -1,0 +1,628 @@
+{
+  "schemaVersion": 1,
+  "sdkVersion": "0.1.0",
+  "upstream": {
+    "repository": "https://github.com/ehsanwwe/OpenMakeupSDK",
+    "commit": "12c5a8023aab0fcec7eef4fbdc0d1a29cf9989dd",
+    "license": "MIT"
+  },
+  "assetRoot": "assets",
+  "patternManifest": "patterns/patterns.json",
+  "patternManifestVersion": 1,
+  "patternCount": 73,
+  "categoryCounts": {
+    "eyeline": 12,
+    "eyeshadow": 49,
+    "mascara": 4,
+    "blush": 4,
+    "foundation": 1,
+    "lipstick": 3
+  },
+  "files": [
+    {
+      "path": "blender/face-rigged.blend",
+      "size": 1170424,
+      "sha256": "2207367c0aa78e7daaecc2b5c398cfa55ce9125578c7bceff03255f7b34886d7"
+    },
+    {
+      "path": "blender/face-rigged1.blend",
+      "size": 1202324,
+      "sha256": "513f8e54886b4eb11a383604204300d213600d8e9be96bdf8393f654d53750ac"
+    },
+    {
+      "path": "mediapipe-face-mesh/face_mesh_solution_packed_assets_loader.js",
+      "size": 8928,
+      "sha256": "e5de8685b299184813f7cec668e499023937ae521b70f60cd0fc4832930446e0"
+    },
+    {
+      "path": "mediapipe-face-mesh/face_mesh_solution_packed_assets.data",
+      "size": 3986256,
+      "sha256": "dbe5905c582c0462cdaea17e7e6ecea92edaa8cccc515c5e2e7291f2cbb5fb99"
+    },
+    {
+      "path": "mediapipe-face-mesh/face_mesh_solution_simd_wasm_bin.data",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "mediapipe-face-mesh/face_mesh_solution_simd_wasm_bin.js",
+      "size": 330166,
+      "sha256": "ca291877afb9c13308cf6be42f23cd39f1adf0036bb63ecad2ce16073bcf07c7"
+    },
+    {
+      "path": "mediapipe-face-mesh/face_mesh_solution_simd_wasm_bin.wasm",
+      "size": 6161697,
+      "sha256": "fb9e9cfe8b83a914e40eab2efd3b0d92a61f82a7c968589f223ab2a7e331d314"
+    },
+    {
+      "path": "mediapipe-face-mesh/face_mesh_solution_wasm_bin.js",
+      "size": 330161,
+      "sha256": "0a532ae8450e7e5f2788cc92ad190210f721446d3fd9cb259fdda958e66102c1"
+    },
+    {
+      "path": "mediapipe-face-mesh/face_mesh_solution_wasm_bin.wasm",
+      "size": 6084312,
+      "sha256": "54522fa25c505bf094242f969b4e4919125eb0dadccb568f2af171bbd65865f9"
+    },
+    {
+      "path": "mediapipe-face-mesh/face_mesh.binarypb",
+      "size": 939,
+      "sha256": "139546bf05aebb33e2611b6b945f3a1629c316ca924e33cec1547c85ddef9f53"
+    },
+    {
+      "path": "mediapipe-face-mesh/face_mesh.js",
+      "size": 64913,
+      "sha256": "5db8555ac80ca2ad7366fbb3ea53c0d0959609fc9abb7b8be37a74ec1ac4ba9c"
+    },
+    {
+      "path": "mediapipe-face-mesh/index.d.ts",
+      "size": 6383,
+      "sha256": "9269579ae1b81e0f7b5232fa759cead6329a3683da8c864d8b258c9ffd5a1ad4"
+    },
+    {
+      "path": "mediapipe-face-mesh/package.json",
+      "size": 664,
+      "sha256": "e279c3b6774049f9f3147e5e2a47998a6114774c2ba6fa7a323f8fd505bd8109"
+    },
+    {
+      "path": "mediapipe-face-mesh/README.md",
+      "size": 379,
+      "sha256": "9dad28188ae54ea420e3d29c23360b040a0dfb88954b99a3e456b8a8c93cf2a1"
+    },
+    {
+      "path": "models/face.glb",
+      "size": 146180,
+      "sha256": "0a98da621089d6436f9bb2510cb0597fe743d39cfd773d2f48f78256555af200"
+    },
+    {
+      "path": "patterns/blush/6413.png",
+      "size": 34919,
+      "sha256": "bfa7adb5f809b7e98a10034ae0e6879e1e6bb5023570bd070b177c5ba6a95f62"
+    },
+    {
+      "path": "patterns/blush/6415.png",
+      "size": 32959,
+      "sha256": "cce0f0c32c747d87c7181819c38eea02e8bcd1aa9ab24781d16241c89ba9909b"
+    },
+    {
+      "path": "patterns/blush/6417.png",
+      "size": 24923,
+      "sha256": "2cd32784aca9a7db40821a40695d24d73e4078470f0f03f33188d3daaa535103"
+    },
+    {
+      "path": "patterns/blush/6419.png",
+      "size": 52078,
+      "sha256": "19a4cc372255b197e27514924b288d36c594f0d6b5ac2612be4b3584f3e6a5e8"
+    },
+    {
+      "path": "patterns/eyeline/10246.png",
+      "size": 17426,
+      "sha256": "63fc59dee992a0cce415e69ecc9c23e4d0f7e4606863c828a4fbd4686abd6d49"
+    },
+    {
+      "path": "patterns/eyeline/9119.png",
+      "size": 63388,
+      "sha256": "fef024ba2956cf29ebd5a665c080ee8ec2d20bcd5746167967490029a67bbd21"
+    },
+    {
+      "path": "patterns/eyeline/9120.png",
+      "size": 57540,
+      "sha256": "259fc0db95f7beb9058dd2417a526388631f0b2bb90d4b3778430411e8cea48f"
+    },
+    {
+      "path": "patterns/eyeline/9121.png",
+      "size": 27350,
+      "sha256": "1e20a2e089794fcd725946b0ffbbef12703c6723b3af4dafb43f7d279dffdef9"
+    },
+    {
+      "path": "patterns/eyeline/9122.png",
+      "size": 55609,
+      "sha256": "b1452d7f915eb35e56f556bc96f8f19ba5656ef721e9e00dd1f31926bffbf6a3"
+    },
+    {
+      "path": "patterns/eyeline/9123.png",
+      "size": 57815,
+      "sha256": "854078d77dcff85804fd63b2afc11527f308b605704cd0f2c17f45acefefa070"
+    },
+    {
+      "path": "patterns/eyeline/9124.png",
+      "size": 61875,
+      "sha256": "399ef7ad928210e9c260cfd48561e948cfcbfd67f121e333943bfbc0a009799a"
+    },
+    {
+      "path": "patterns/eyeline/9125.png",
+      "size": 28975,
+      "sha256": "05f9b8b38bd069132c66b3a4b4fbc85aca62c06d42fd45efc7ce6c428d1b8b96"
+    },
+    {
+      "path": "patterns/eyeline/9127.png",
+      "size": 27106,
+      "sha256": "4428c08395641e84cd128d38cafca72c0345ada2c09f12b1b1e9af885c309f50"
+    },
+    {
+      "path": "patterns/eyeline/9128.png",
+      "size": 32236,
+      "sha256": "def18d532bb9719d0358ef9fdd70e13f5d5cd1939496e535f88511829bed72aa"
+    },
+    {
+      "path": "patterns/eyeline/9129.png",
+      "size": 33055,
+      "sha256": "f6b03ec75393bb7447c80784b9f23b69f9ef715124ca847df4acfe828a578d90"
+    },
+    {
+      "path": "patterns/eyeline/9131.png",
+      "size": 47003,
+      "sha256": "36ec1a9ddc531d93936a218e7b125220e2f70921f333c85b66e50283d0cf7050"
+    },
+    {
+      "path": "patterns/eyeshadow/17197.png",
+      "size": 41626,
+      "sha256": "1e9f4640078bb541be927a191b9af5eb1e0d0aff322e43594ccaa3a1078f1025"
+    },
+    {
+      "path": "patterns/eyeshadow/17216.png",
+      "size": 60854,
+      "sha256": "fcf2f4c7fdf43f963ce823083330b7607a8ca29b8a36c0f2e9bfb3a7c4053757"
+    },
+    {
+      "path": "patterns/eyeshadow/6309.png",
+      "size": 94057,
+      "sha256": "26392a1f0474980d37e91f69e0c3c748bd1b7ea4e5973e3240d79323e51b21fc"
+    },
+    {
+      "path": "patterns/eyeshadow/6311.png",
+      "size": 26137,
+      "sha256": "3653c011b73108f4dfceec880089ac82c61b73a7b304aef11ba8c42f295ff64e"
+    },
+    {
+      "path": "patterns/eyeshadow/6313.png",
+      "size": 12894,
+      "sha256": "554c93c7771d67bed71845095f1911c6b1d825b90d00fda25c78522043b3ff53"
+    },
+    {
+      "path": "patterns/eyeshadow/6315.png",
+      "size": 24984,
+      "sha256": "b7212d1e8b0cb685b2a82df21a6289400d04baa38c1be44ac3ed337f0b634dd1"
+    },
+    {
+      "path": "patterns/eyeshadow/6317.png",
+      "size": 17470,
+      "sha256": "b932e1b81f34e608b5c86d344e9f4efb61b39539c26292775b68963f523f7014"
+    },
+    {
+      "path": "patterns/eyeshadow/6321.png",
+      "size": 51846,
+      "sha256": "24c95630431e88885fe5e951e5d38dd65928f23753bd6268a674f511c7eee9ca"
+    },
+    {
+      "path": "patterns/eyeshadow/6323.png",
+      "size": 40360,
+      "sha256": "6996e17a6086c4ddb5c0099a176a2b98dce02a5a5fe8bfbb93976afa14bb4989"
+    },
+    {
+      "path": "patterns/eyeshadow/6325.png",
+      "size": 28857,
+      "sha256": "6f4a095678a84f42b5e3b66c517344cde12794fd2167c90c3574066f979f8fdf"
+    },
+    {
+      "path": "patterns/eyeshadow/6327.png",
+      "size": 50744,
+      "sha256": "6dcde872ed6cfa2629104caae5c40af13f0bc55d2aee94c92c3d5f1c486fd655"
+    },
+    {
+      "path": "patterns/eyeshadow/6329.png",
+      "size": 45442,
+      "sha256": "df0d868e0f2e460b4910aa50bf306a3dc0ce618a09ee9cfdc1891f04f43afed0"
+    },
+    {
+      "path": "patterns/eyeshadow/6331.png",
+      "size": 44779,
+      "sha256": "1ab15eb84ca52323280cd984b8e3322ef4798aa188148b5e673ffc7c5679bcb9"
+    },
+    {
+      "path": "patterns/eyeshadow/6333.png",
+      "size": 34710,
+      "sha256": "d8dd90b8b506a1bf6d3438e66564646f5f3cc2a568355b3b50246363a602e650"
+    },
+    {
+      "path": "patterns/eyeshadow/6335.png",
+      "size": 37078,
+      "sha256": "0a964861bfbaf5c789be307d1d12f6972183b454eff44eef3ab2b72f120f30b5"
+    },
+    {
+      "path": "patterns/eyeshadow/6337.png",
+      "size": 22965,
+      "sha256": "738ad55de9ce3e2f2d8c8abc5f9e7a448be49d9193b6c3afde92aafa853ed058"
+    },
+    {
+      "path": "patterns/eyeshadow/6339.png",
+      "size": 31568,
+      "sha256": "a13a440143024166f2f044376f508a15ec4906907a1d056817e74419e0346226"
+    },
+    {
+      "path": "patterns/eyeshadow/6341.png",
+      "size": 27077,
+      "sha256": "fdb95b3eb269112bd129e249beb72952d68541b9086ad3ee92d16b1e69c45775"
+    },
+    {
+      "path": "patterns/eyeshadow/6345.png",
+      "size": 31609,
+      "sha256": "8f82ab4c79a23e8aee9628c2a663fd988319ee4b2068bfa06b0bb4bb5b82dbcf"
+    },
+    {
+      "path": "patterns/eyeshadow/6347.png",
+      "size": 33462,
+      "sha256": "945c92e3c0ee1be11cd192cd1d0d162c3c68938e9fd6d1165c95322ed9a0935f"
+    },
+    {
+      "path": "patterns/eyeshadow/6349.png",
+      "size": 24984,
+      "sha256": "3b74827c35dd75ec1140549aed686d04317b386a601ea33f75c79de4d4b431fd"
+    },
+    {
+      "path": "patterns/eyeshadow/6351.png",
+      "size": 28676,
+      "sha256": "494904c07917b0095a9063f99d53a81dd0983494c2427781dde8bbd6a6ac5fdb"
+    },
+    {
+      "path": "patterns/eyeshadow/6353.png",
+      "size": 73034,
+      "sha256": "7ae5ab01b37759e9a1b4fdc340bbe336a2336e76fe739ed11d51f1f3db453585"
+    },
+    {
+      "path": "patterns/eyeshadow/6355.png",
+      "size": 49284,
+      "sha256": "11859a501d66e171686f5783a336a8ab17cfcc6079ca38f4951fc45b39eba26a"
+    },
+    {
+      "path": "patterns/eyeshadow/6357.png",
+      "size": 30783,
+      "sha256": "08866775326c15266e859edafcaf1619d7b9f96faa6edef899d1e47e1f767971"
+    },
+    {
+      "path": "patterns/eyeshadow/6359.png",
+      "size": 44218,
+      "sha256": "a50869f30e173fc1b55a686e1a94dcc561886fb97412ba6dbccce2d71bc3abac"
+    },
+    {
+      "path": "patterns/eyeshadow/6361.png",
+      "size": 45471,
+      "sha256": "03eb0f43fab76cec4983b40eefc20785ee4a8268251bf5c737f0de520a1a761b"
+    },
+    {
+      "path": "patterns/eyeshadow/6363.png",
+      "size": 14464,
+      "sha256": "5c6dcadbdbacb067739e0d14b59bc6c15838a77f22afdbf7a2d8f5b40f916905"
+    },
+    {
+      "path": "patterns/eyeshadow/6365.png",
+      "size": 18453,
+      "sha256": "6ec24c4b24e8db4e86dc1f739866c5d76212ec6715a1fd4b39d7ac54a8cd1cc4"
+    },
+    {
+      "path": "patterns/eyeshadow/6367.png",
+      "size": 30926,
+      "sha256": "215e18a26e1f71ae240282f2b629ce2e7b58b1c1f4b9c9d3c425fe395f855bf2"
+    },
+    {
+      "path": "patterns/eyeshadow/6369.png",
+      "size": 52680,
+      "sha256": "cf12b2b7122d5cc6dad664fbd9cd7f37af1f993001664830d552140e236a3a2b"
+    },
+    {
+      "path": "patterns/eyeshadow/6371.png",
+      "size": 37677,
+      "sha256": "c1e04798e984c347a29106f589ef260263cb4f56d822fa7187b60a45db8f11cc"
+    },
+    {
+      "path": "patterns/eyeshadow/6373.png",
+      "size": 34789,
+      "sha256": "a9222254b493096f9d3fce290b7534236e072ec258e5335bd7255a747de4710c"
+    },
+    {
+      "path": "patterns/eyeshadow/6375.png",
+      "size": 34873,
+      "sha256": "bfb4a1e20bdc11a04c1f6777ccc7d4ed208874104e758d32ccc258f202a09c0c"
+    },
+    {
+      "path": "patterns/eyeshadow/6377.png",
+      "size": 28727,
+      "sha256": "5e4eeae8b415a800e97c94459f01e26785a329e26ef2e93052e708a692c936a6"
+    },
+    {
+      "path": "patterns/eyeshadow/6379.png",
+      "size": 66101,
+      "sha256": "5b3a2c8cba59b40401586fa0009506de62d3fbccd65d4e191896ed4871425732"
+    },
+    {
+      "path": "patterns/eyeshadow/6381.png",
+      "size": 49929,
+      "sha256": "24e626c94fac7447a69c07ba57874128916ccd3c328eb6990ee2785404e20058"
+    },
+    {
+      "path": "patterns/eyeshadow/6383.png",
+      "size": 44509,
+      "sha256": "a3d83ac20826c4f7b2e4c9467fc3aa3d9b6f5de910e41e40e0da9ecff0fd6cb9"
+    },
+    {
+      "path": "patterns/eyeshadow/6385.png",
+      "size": 89025,
+      "sha256": "1d9e14bb8e0c4a2c368bfb86ca16eae7d22df4436706e3df73d6b1aa1d602b1f"
+    },
+    {
+      "path": "patterns/eyeshadow/6387.png",
+      "size": 75784,
+      "sha256": "fedbe9811df71ea98c204e60cf9952c0cf7c1a572ad48dbe41feefff95dc55cf"
+    },
+    {
+      "path": "patterns/eyeshadow/6389.png",
+      "size": 78825,
+      "sha256": "a4356db733c23bf1cd5bc128d0e756d6d18555c9ee4ab003425e7d8709eec38f"
+    },
+    {
+      "path": "patterns/eyeshadow/6391.png",
+      "size": 24506,
+      "sha256": "ac2563a9e3efc817685ad3a5cc9aa0704e1b6769c372c047d4f4dc714bd53146"
+    },
+    {
+      "path": "patterns/eyeshadow/6393.png",
+      "size": 94051,
+      "sha256": "6d67ae128763e03d6c55df0c8038e74719128d9b7532106943f7cc21aaf7ddf4"
+    },
+    {
+      "path": "patterns/eyeshadow/6395.png",
+      "size": 83314,
+      "sha256": "f308edddede549c6a66d8700b16e0cb35d18c994fdb82326629206779e01c30b"
+    },
+    {
+      "path": "patterns/eyeshadow/6397.png",
+      "size": 80747,
+      "sha256": "acf89ff4ed9afc59730ec6cdeb4ba53d477f15bec38c1be20fe02247ca9193d2"
+    },
+    {
+      "path": "patterns/eyeshadow/6403.png",
+      "size": 54837,
+      "sha256": "8e5b016eba4eea2cf67b4e17badc25c42e4ba4adbbbc255c4341579f582c2543"
+    },
+    {
+      "path": "patterns/eyeshadow/8711.png",
+      "size": 32227,
+      "sha256": "62c318eebae64f2d317138699ce540c4e1d948d5b3e4f787ad95ecdbc0c604e4"
+    },
+    {
+      "path": "patterns/eyeshadow/8718.png",
+      "size": 42589,
+      "sha256": "61534d0c671fee787c5f1898f9b63d70a1762f4560da45abf9065c3366a550a0"
+    },
+    {
+      "path": "patterns/eyeshadow/8720.png",
+      "size": 61466,
+      "sha256": "14001326e4c8ddf4eaeaec21e725bbf70e114623ea0b1f584c48df44d21adf69"
+    },
+    {
+      "path": "patterns/foundation/.gitkeep",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "patterns/foundation/6421.png",
+      "size": 1114,
+      "sha256": "6a2bc29d023c55d947ead3eaf74a1e6c752ea1ca34727ff3d7bd30d3d350d737"
+    },
+    {
+      "path": "patterns/lipstick/.gitkeep",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "patterns/lipstick/6427.png",
+      "size": 1114,
+      "sha256": "6a2bc29d023c55d947ead3eaf74a1e6c752ea1ca34727ff3d7bd30d3d350d737"
+    },
+    {
+      "path": "patterns/lipstick/6429.png",
+      "size": 1114,
+      "sha256": "6a2bc29d023c55d947ead3eaf74a1e6c752ea1ca34727ff3d7bd30d3d350d737"
+    },
+    {
+      "path": "patterns/lipstick/6431.png",
+      "size": 1114,
+      "sha256": "6a2bc29d023c55d947ead3eaf74a1e6c752ea1ca34727ff3d7bd30d3d350d737"
+    },
+    {
+      "path": "patterns/mascara/9141.png",
+      "size": 74317,
+      "sha256": "2f98195b6a6d7eca13d8e874a8036d238bf2b56f5fc285d2a58f629b44e92597"
+    },
+    {
+      "path": "patterns/mascara/9142.png",
+      "size": 88156,
+      "sha256": "092544f404fd816db9933ab2da8cd9864fa1a79d98c76b7882fb57b1858e5f7d"
+    },
+    {
+      "path": "patterns/mascara/9143.png",
+      "size": 98587,
+      "sha256": "3850afd621817eb032af3b688dbcfcbe226ad66f21c2d9493fb77254aa37d406"
+    },
+    {
+      "path": "patterns/mascara/9144.png",
+      "size": 89256,
+      "sha256": "eb0a750b5e9b5ef9145066944a4cdf64ed97d878e8263b8d54b0158a33c79f51"
+    },
+    {
+      "path": "patterns/patterns.json",
+      "size": 10196,
+      "sha256": "bf26550aab4ef23f8991224b01e0f64399701de3e1c74cfaa954575baacb0a33"
+    },
+    {
+      "path": "shaders/bluremask/fragment.glsl",
+      "size": 1220,
+      "sha256": "ef782ef52aaf0f26e32d6b7bf48ceae37405f79cff8f3f47fc685d89da8eda76"
+    },
+    {
+      "path": "shaders/bluremask/vertex.glsl",
+      "size": 577,
+      "sha256": "c855283d05802a824f396dfadf4e93815fb668734a0e4109418b96ddbec63fb6"
+    },
+    {
+      "path": "shaders/blush/fragment.glsl",
+      "size": 2086,
+      "sha256": "05aa6e6b297027ae17123d090a2c9eb1071cf474e2dd968f41c0b536fee50d51"
+    },
+    {
+      "path": "shaders/blush/i6417.png",
+      "size": 24923,
+      "sha256": "2cd32784aca9a7db40821a40695d24d73e4078470f0f03f33188d3daaa535103"
+    },
+    {
+      "path": "shaders/blush/vertex.glsl",
+      "size": 908,
+      "sha256": "01be82ad9bfc9339a6784734fa52e48cd62f8cf75cd66ef857542bb74b4901ca"
+    },
+    {
+      "path": "shaders/eyeline/fragment.glsl",
+      "size": 387,
+      "sha256": "1aab2b5dc72fb25e01de9ee338cd661ac404509786e50e7ef9b42768a1d5f39f"
+    },
+    {
+      "path": "shaders/eyeline/i10246.png",
+      "size": 17426,
+      "sha256": "63fc59dee992a0cce415e69ecc9c23e4d0f7e4606863c828a4fbd4686abd6d49"
+    },
+    {
+      "path": "shaders/eyeline/i9144.png",
+      "size": 89256,
+      "sha256": "eb0a750b5e9b5ef9145066944a4cdf64ed97d878e8263b8d54b0158a33c79f51"
+    },
+    {
+      "path": "shaders/eyeline/vertex.glsl",
+      "size": 354,
+      "sha256": "bbd615241d88440c880718c62fe0dd0f1892e0224bd07516ed77f3641397fc6f"
+    },
+    {
+      "path": "shaders/eyeshadow/fragment.glsl",
+      "size": 1881,
+      "sha256": "72a0c7914ca0340ee79560dcd217757ebe98c5a39ab67fe40764c2c6348a5a4b"
+    },
+    {
+      "path": "shaders/eyeshadow/i6333.png",
+      "size": 34710,
+      "sha256": "d8dd90b8b506a1bf6d3438e66564646f5f3cc2a568355b3b50246363a602e650"
+    },
+    {
+      "path": "shaders/eyeshadow/i6339.png",
+      "size": 31568,
+      "sha256": "a13a440143024166f2f044376f508a15ec4906907a1d056817e74419e0346226"
+    },
+    {
+      "path": "shaders/eyeshadow/vertex.glsl",
+      "size": 328,
+      "sha256": "fe55a9a44113b4d7b106b25820e391d9882789f787e3f802dfd35c3728b5057c"
+    },
+    {
+      "path": "shaders/facewarp/fragment.glsl",
+      "size": 246,
+      "sha256": "e1fda46a1016c12fbfa6633322f6b30c5daf07a940105475225fd41cf93c16d5"
+    },
+    {
+      "path": "shaders/facewarp/vertex.glsl",
+      "size": 566,
+      "sha256": "a8668b94b47b6fc7a62d16c2b6d6281031eca4fb9925c3afa5b265b5aaaede5a"
+    },
+    {
+      "path": "shaders/foundation_mask.PNG",
+      "size": 103242,
+      "sha256": "95592041e32ca22071b6bcb08dc793dde867451bd540fcd068351b4d6e0c8193"
+    },
+    {
+      "path": "shaders/foundation_mask2.PNG",
+      "size": 386504,
+      "sha256": "dfc6d83a5978811459c54496a1d762800a281550b41c10003fa1972962036f99"
+    },
+    {
+      "path": "shaders/foundation_mask3.PNG",
+      "size": 123375,
+      "sha256": "0923c17c3e46a7219b691bd9efca7df40c01abe6a9ec4676a75629f9a6ae92e6"
+    },
+    {
+      "path": "shaders/foundation/fragment.glsl",
+      "size": 963,
+      "sha256": "13614e163d15d37e40c81928270c47cfcd143ca27257a73cc85acde0c6bd51e1"
+    },
+    {
+      "path": "shaders/foundation/vertex.glsl",
+      "size": 519,
+      "sha256": "48b9df32de1fae713e5129dc679d1b3202c3a5cc16a0117e0d36452949465e61"
+    },
+    {
+      "path": "shaders/lip/fragment.glsl",
+      "size": 4530,
+      "sha256": "241f765bec2e1c0997a51f9a6a1e3ccfa683234d78ec4515ce1c12a3e11e1ce0"
+    },
+    {
+      "path": "shaders/lip/lip-gloss.PNG",
+      "size": 14501,
+      "sha256": "cebd973d79515dce6d32aba566c7c4b5a4b16ebc03b0bde333178ccd03ec1089"
+    },
+    {
+      "path": "shaders/lip/Lips-close.PNG",
+      "size": 37220,
+      "sha256": "811bb3468ed26892338298c4d7fef21cbbc8e41d9b7dfc6ea776a16d4e9937e9"
+    },
+    {
+      "path": "shaders/lip/Lips-open.PNG",
+      "size": 23623,
+      "sha256": "6316e46838340bd444ec3215a11f893b42892cbe4514fbbe9cc42c371a0583af"
+    },
+    {
+      "path": "shaders/lip/noize.PNG",
+      "size": 123114,
+      "sha256": "a9102189dbc62e3b9125e2aa6c913f9c460c49cdf19285d80f7ddca302594eef"
+    },
+    {
+      "path": "shaders/lip/vertex.glsl",
+      "size": 1036,
+      "sha256": "2a14563fd158db4436641febefd08ccf552f4b5d2351fe2bcd36cc6fa3656b1c"
+    },
+    {
+      "path": "shaders/mascara/fragment.glsl",
+      "size": 386,
+      "sha256": "83e21d852922314208feff15bf3a17206045e77094cd064273d214ffbd821998"
+    },
+    {
+      "path": "shaders/mascara/i9144.png",
+      "size": 89256,
+      "sha256": "eb0a750b5e9b5ef9145066944a4cdf64ed97d878e8263b8d54b0158a33c79f51"
+    },
+    {
+      "path": "shaders/mascara/vertex.glsl",
+      "size": 354,
+      "sha256": "bbd615241d88440c880718c62fe0dd0f1892e0224bd07516ed77f3641397fc6f"
+    },
+    {
+      "path": "shaders/uv-checker.png",
+      "size": 265930,
+      "sha256": "e5ef54d921355192566e32b15d313bdf8180c8b6a890618db81bd0012efffdac"
+    }
+  ]
+}

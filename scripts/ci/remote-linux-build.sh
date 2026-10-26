@@ -26,9 +26,11 @@ ssh "${ALIYUN_USER}@${ALIYUN_HOST}" "
   cmake --build build-wasm -j2
   ctest --test-dir build-wasm --output-on-failure
   npm --prefix bindings/miniprogram test
+  npm --prefix bindings/miniprogram run build:assets-manifest
   mkdir -p release
   cp bindings/miniprogram/dist/makeup_sdk_core.wasm release/makeup_sdk_core-${VERSION}.wasm
   cp bindings/miniprogram/dist/manifest.json release/makeup_sdk_core-${VERSION}.manifest.json
+  cp bindings/miniprogram/dist/openmakeup-assets.manifest.json release/makeup_sdk_assets-${VERSION}.manifest.json
   (cd bindings/miniprogram && npm version '${VERSION}' --no-git-tag-version --allow-same-version)
   (cd bindings/miniprogram && npm pack --pack-destination '../../release' >/dev/null)
   package_file=\"\$(find release -maxdepth 1 -name 'wangyihao0001-makeup-sdk-miniprogram-*.tgz' -type f -print -quit)\"

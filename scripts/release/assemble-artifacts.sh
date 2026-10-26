@@ -11,6 +11,8 @@ if [ -f "${ROOT}/bindings/miniprogram/dist/makeup_sdk_core.wasm" ]; then
     "${RELEASE_DIR}/makeup_sdk_core-${VERSION}.wasm"
   cp "${ROOT}/bindings/miniprogram/dist/manifest.json" \
     "${RELEASE_DIR}/makeup_sdk_core-${VERSION}.manifest.json"
+  cp "${ROOT}/bindings/miniprogram/dist/openmakeup-assets.manifest.json" \
+    "${RELEASE_DIR}/makeup_sdk_assets-${VERSION}.manifest.json"
 fi
 
 (cd "${ROOT}/bindings/miniprogram" && npm pack \
@@ -23,4 +25,5 @@ mv "${package_file}" "${RELEASE_DIR}/makeup-sdk-miniprogram-${VERSION}.tgz"
   "makeup-sdk-miniprogram-${VERSION}.tgz" \
   "makeup_sdk_core-${VERSION}.wasm" \
   "makeup_sdk_core-${VERSION}.manifest.json" \
+  "makeup_sdk_assets-${VERSION}.manifest.json" \
   > SHA256SUMS)

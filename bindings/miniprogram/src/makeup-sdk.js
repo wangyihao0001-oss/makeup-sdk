@@ -1,5 +1,12 @@
 import { loadWasmCore } from './wasm-loader.js';
 import { EFFECT, EVENT, FINISH, SdkError, STATE, STATUS } from './constants.js';
+import {
+  UPSTREAM_CATEGORIES,
+  UPSTREAM_MORPH_CONTROLS,
+  UPSTREAM_MORPH_TARGETS_EXTRA,
+  resolveUpstreamCategory,
+  resolveUpstreamPattern
+} from './upstream-catalog.js';
 export { EFFECT, EVENT, FINISH, SdkError, STATE, STATUS } from './constants.js';
 
 const EFFECTS = Object.values(EFFECT);
@@ -42,13 +49,26 @@ function validateFrame(frame) {
 }
 
 function defaultCatalog(manifestVersion) {
-  return [{
-    patternId: 1001,
-    category: EFFECT.LIPSTICK,
-    assetKey: 'lipstick/1001',
-    finishes: Object.values(FINISH),
-    manifestVersion
-  }];
+  const categoryMap = { eyeline: EFFECT.EYELINER };
+  const catalog = Object.entries(UPSTREAM_CATEGORIES).flatMap(([category, config]) =>
+    config.patterns.map((pattern) => ({
+      patternId: pattern.id,
+      category: categoryMap[category] ?? category,
+      assetKey: pattern.file,
+      finishes: config.supportsFinish ? Object.values(FINISH) : [],
+      manifestVersion,
+      bundled: pattern.bundled,
+      colorable: pattern.colorable
+    })));
+  // Keep the pre-parity synthetic pattern usable for existing integration tests.
+  catalog.push({ patternId: 1001, category: EFFECT.LIPSTICK, assetKey: 'lipstick/1001',
+    finishes: Object.values(FINISH), manifestVersion, bundled: false, colorable: true, legacy: true });
+  return catalog;
+}
+
+function upstreamCategory(category) {
+  const resolved = resolveUpstreamCategory(category);
+  return resolved === 'eyeline' ? EFFECT.EYELINER : resolved;
 }
 
 export function createCachedResourcePort(base) {
@@ -130,6 +150,9 @@ export class MakeupSdkSession {
     this.generation = new Map();
     this.operationId = 0;
     this.eventListeners = new Set();
+    this.morphState = new Map();
+    this.wireframe = false;
+    this.blur = false;
     this.capabilityReport = this.core.capabilities();
   }
 
@@ -184,7 +207,8 @@ export class MakeupSdkSession {
       assertStatus(await this.resources.loadManifest(this.core.manifestVersion), 'Manifest load failed');
       assertStatus(await this.tracker.initialize(this.options.trackerVersion ?? 1), 'Tracker initialization failed');
       assertStatus(await this.renderer.initialize(this.options.rendererVersion ?? 1), 'Renderer initialization failed');
-      const supportsEffects = Object.fromEntries(EFFECTS.map((effect) => [effect, effect === EFFECT.LIPSTICK]));
+      const rendererEffects = this.renderer.supportedEffects ?? [EFFECT.LIPSTICK];
+      const supportsEffects = Object.fromEntries(EFFECTS.map((effect) => [effect, rendererEffects.includes(effect)]));
       this.core.configureCapabilities?.({
         rendererVersion: this.options.rendererVersion ?? 1,
         trackerVersion: this.options.trackerVersion ?? 1,
@@ -204,7 +228,9 @@ export class MakeupSdkSession {
         trackerAvailable: true,
         rendererAvailable: true,
         supportsEffects,
-        knownLimitations: ['Only lipstick is enabled in the first renderer milestone.']
+        knownLimitations: rendererEffects.length === 1 && rendererEffects[0] === EFFECT.LIPSTICK
+          ? ['Only lipstick is enabled in the first renderer milestone.']
+          : []
       };
       this.initialized = true;
       this.setState(STATE.READY);
@@ -233,37 +259,49 @@ export class MakeupSdkSession {
 
   async apply(params) {
     this.ensureInitialized();
-    if (!params || params.category !== EFFECT.LIPSTICK) {
-      throw new SdkError(STATUS.UNSUPPORTED_EFFECT, 'Only lipstick is supported in this milestone');
+    if (!params || !upstreamCategory(params.category)) {
+      throw new SdkError(STATUS.INVALID_ARGUMENT, `Unknown makeup category: ${params?.category}`);
     }
-    const finish = normalizeFinish(params.finish);
-    const pattern = this.catalog.find((entry) => entry.patternId === params.patternId && entry.category === params.category);
-    if (!pattern || !pattern.finishes.includes(finish)) {
+    const category = upstreamCategory(params.category);
+    const finish = params.finish == null ? null : normalizeFinish(params.finish);
+    if (!this.capabilityReport.supportsEffects?.[category]) {
+      throw new SdkError(STATUS.UNSUPPORTED_EFFECT, `Effect is not supported by the active renderer: ${category}`);
+    }
+    const pattern = params.patternId == null
+      ? null
+      : this.catalog.find((entry) => String(entry.patternId) === String(params.patternId) && entry.category === category);
+    const supportsFinish = UPSTREAM_CATEGORIES[category === EFFECT.EYELINER ? 'eyeline' : category]?.supportsFinish ?? false;
+    if ((params.patternId != null && !pattern) || (supportsFinish && finish != null && pattern && !pattern.finishes.includes(finish))) {
       throw new SdkError(STATUS.ASSET_LOAD_FAILED, 'Pattern or finish is unavailable');
     }
     if (!Number.isFinite(params.intensity) || params.intensity < 0 || params.intensity > 1) {
       throw new SdkError(STATUS.INVALID_ARGUMENT, 'Intensity must be between 0 and 1');
     }
-    const generation = (this.generation.get(params.category) ?? 0) + 1;
-    this.generation.set(params.category, generation);
-    await this.resources.loadPattern(params.patternId, this.core.manifestVersion);
-    if (this.generation.get(params.category) !== generation || this.disposed) {
+    const generation = (this.generation.get(category) ?? 0) + 1;
+    this.generation.set(category, generation);
+    if (params.patternId != null) {
+      await this.resources.loadPattern(params.patternId, this.core.manifestVersion);
+    }
+    if (this.generation.get(category) !== generation || this.disposed) {
       throw new SdkError(STATUS.OPERATION_CANCELLED, 'A newer effect operation superseded this one');
     }
-    assertStatus(await this.core.apply?.({ ...params, finish }) ?? STATUS.OK,
+    const normalized = { ...params, category, finish };
+    assertStatus(await this.core.apply?.(normalized) ?? STATUS.OK,
       'Core effect application failed');
-    this.core.layers.set(params.category, { ...params, finish });
+    this.core.layers.set(category, normalized);
     const operationId = ++this.operationId;
-    this.emit('effect', { category: params.category, operationId,
-      params: { ...params, finish } });
-    return { status: STATUS.OK, operationId, params: { ...params, finish } };
+    this.emit('effect', { category, operationId, params: normalized });
+    return { status: STATUS.OK, operationId, params: normalized };
   }
 
   async clear(category) {
     this.ensureInitialized();
-    assertStatus(await this.core.clear?.(category) ?? STATUS.OK, 'Core effect clear failed');
-    this.core.layers.delete(category);
-    return { status: STATUS.OK, operationId: ++this.operationId, category };
+    const normalizedCategory = upstreamCategory(category);
+    if (!normalizedCategory) throw new SdkError(STATUS.INVALID_ARGUMENT, `Unknown makeup category: ${category}`);
+    this.generation.set(normalizedCategory, (this.generation.get(normalizedCategory) ?? 0) + 1);
+    assertStatus(await this.core.clear?.(normalizedCategory) ?? STATUS.OK, 'Core effect clear failed');
+    this.core.layers.delete(normalizedCategory);
+    return { status: STATUS.OK, operationId: ++this.operationId, category: normalizedCategory };
   }
 
   async clearAll() {
@@ -329,6 +367,50 @@ export class MakeupSdkSession {
     this.initialized = false;
     this.disposed = true;
     this.setState(STATE.DISPOSED);
+  }
+
+  getPatterns(category) {
+    const resolved = resolveUpstreamCategory(category);
+    if (!resolved) return [];
+    return UPSTREAM_CATEGORIES[resolved].patterns.map(({ number, id, bundled, colorable, file }) =>
+      ({ number, id, bundled, colorable, file }));
+  }
+
+  morph(map = {}) {
+    for (const [name, value] of Object.entries(map)) this.setMorph(name, value);
+  }
+
+  setMorph(name, value) {
+    if (typeof name !== 'string' || !Number.isFinite(value)) {
+      throw new SdkError(STATUS.INVALID_ARGUMENT, 'Morph name and value are required');
+    }
+    if (value < -1 || value > 2) {
+      throw new SdkError(STATUS.INVALID_ARGUMENT, 'Morph value must be between -1 and 2');
+    }
+    const valid = UPSTREAM_MORPH_CONTROLS[name] || UPSTREAM_MORPH_TARGETS_EXTRA.includes(name) || /^facemesh\d+(\.\d+)?$/.test(name);
+    if (!valid) throw new SdkError(STATUS.INVALID_ARGUMENT, `Unknown morph target: ${name}`);
+    this.morphState.set(name, value);
+    this.renderer?.setMorph?.(name, value);
+    return { name, value };
+  }
+
+  resetMorph() {
+    this.morphState.clear();
+    this.renderer?.resetMorph?.();
+  }
+
+  getMorphTargets() {
+    return [...Object.keys(UPSTREAM_MORPH_CONTROLS), ...UPSTREAM_MORPH_TARGETS_EXTRA];
+  }
+
+  setWireframe(on) {
+    this.wireframe = Boolean(on);
+    this.renderer?.setWireframe?.(this.wireframe);
+  }
+
+  setBlur(on) {
+    this.blur = Boolean(on);
+    this.renderer?.setBlur?.(this.blur);
   }
 
   ensureUsable() {

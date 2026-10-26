@@ -16,10 +16,18 @@ SDK、API、WASM、资源清单版本、文件大小、SHA-256 和必需导出�
 `createWechatWasmManifestLoader()` 注入下载或本地文件读取实现。loader 会校验 WASM
 头、版本、大小、SHA-256、导出函数和 API 版本，并在实例化后执行初始化函数。
 
-`src/webgl-renderer.js` 包含最小 WebGL 口红 mask renderer，要求 tracker 提供归一化
-的 `landmarks.lips` 多边形，并通过 `canvasToTempFilePath` 导出当前帧。真实微信项目
-需要把小程序 camera、FaceMesh、WebGL canvas 和临时文件导出 API 通过
+`src/webgl-renderer.js` 包含两种 renderer：兼容旧合同的口红 renderer，以及保持相机
+纹理、面部关键点和多妆效层的 raw WebGL renderer。后者要求 tracker 提供归一化
+关键点，并通过 `canvasToTempFilePath` 导出当前帧。上游 OpenMakeupSDK 的模型、shader、
+纹样和 FaceMesh 资源位于 `assets/`，移植来源和固定提交见 `UPSTREAM.md`；
+`dist/openmakeup-assets.manifest.json` 记录 73 个纹样、模型、shader 和 FaceMesh 文件的版本与 SHA-256。
+
+真实微信项目需要把小程序 camera、FaceMesh、WebGL canvas 和临时文件导出 API 通过
 `src/wechat-adapters.js` 适配到这些端口；模块加载时不会读取 `wx`、`window` 或 `document`。
+
+如果业务需要兼容上游 `OpenMakeup` 调用方式，可使用 `OpenMakeupCompat`。它保留
+`init()`、`apply(category, options)`、`getPatterns()`、`morph()`、`clear()` 和
+`dispose()`，底层仍使用统一的小程序 session。
 
 设备探针位于 `src/probe.js`，会记录 WASM、相机帧、WebGL、追踪器、资源和捕获检查结果。
 本地合同测试可运行：

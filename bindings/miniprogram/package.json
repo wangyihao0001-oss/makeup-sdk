@@ -13,8 +13,11 @@
   },
   "files": [
     "README.md",
+    "UPSTREAM.md",
     "src",
-    "dist"
+    "dist",
+    "assets",
+    "third_party/openmakeup/LICENSE"
   ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
@@ -22,6 +25,7 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "build:manifest": "node scripts/build-manifest.mjs dist/makeup_sdk_core.wasm dist/manifest.json",
+    "build:assets-manifest": "node scripts/build-assets-manifest.mjs",
     "pack:release": "npm pack --pack-destination ../../release"
   }
 }

@@ -7,7 +7,10 @@ import {
   STATE,
   SdkError,
   create,
+  OpenMakeupCompat,
   normalizeFinish,
+  normalizeFaceMeshResult,
+  normalizeWechatFrame,
   runMiniProgramProbe
 } from '../src/index.js';
 
@@ -138,5 +141,71 @@ test('unified onEvent and flat capture metadata preserve legacy listeners', asyn
   assert.equal(events.some((event) => event.type === 'stateChanged'), true);
   assert.equal(events.some((event) => event.type === 'trackingStatus'), true);
   unsubscribe();
+  await sdk.dispose();
+});
+
+test('imports the upstream catalog and exposes pattern and morph compatibility', async () => {
+  const p = ports();
+  const sdk = await create({ runtime: 'ts-js', ...p });
+  const lipstick = sdk.getPatterns(EFFECT.LIPSTICK);
+  const eyeshadow = sdk.getPatterns(EFFECT.EYESHADOW);
+  assert.equal(lipstick.length, 3);
+  assert.equal(eyeshadow.length, 49);
+  assert.equal(lipstick[0].id, 6427);
+  assert.deepEqual(sdk.setMorph('noseSlim', 0.6), { name: 'noseSlim', value: 0.6 });
+  assert.ok(sdk.getMorphTargets().includes('jawWide'));
+  sdk.morph({ cheeks: 0.2 });
+  sdk.resetMorph();
+  await sdk.dispose();
+});
+
+test('normalizes WeChat frame aliases before the core validator', () => {
+  const normalized = normalizeWechatFrame({
+    timestamp: 12,
+    frameWidth: 2,
+    frameHeight: 1,
+    format: 'RGBA8',
+    rotation: 450,
+    isMirror: true,
+    data: new Uint8Array(8)
+  });
+  assert.equal(normalized.timestampNs, 12000000n);
+  assert.equal(normalized.width, 2);
+  assert.equal(normalized.orientation, 90);
+  assert.equal(normalized.mirrored, true);
+});
+
+test('normalizes MediaPipe-style results to the tracker contract', () => {
+  const points = Array.from({ length: 468 }, (_, index) => ({ x: index / 468, y: 0.5, z: 0 }));
+  const tracking = normalizeFaceMeshResult({ multiFaceLandmarks: [points] }, frame);
+  assert.equal(tracking.faceCount, 1);
+  assert.equal(tracking.timestampNs, 42n);
+  assert.equal(tracking.landmarks.points.length, 468);
+  assert.equal(tracking.landmarks.lips.length, 20);
+});
+
+test('enables the full upstream category set when the renderer advertises it', async () => {
+  const p = ports();
+  p.renderer.supportedEffects = Object.values(EFFECT);
+  const sdk = await create({ runtime: 'ts-js', ...p });
+  const report = await sdk.initialize();
+  for (const category of Object.values(EFFECT)) {
+    assert.equal(report.supportsEffects[category], true);
+    const pattern = sdk.getPatterns(category)[0];
+    await sdk.apply({ category, patternId: pattern?.id ?? null, argb: 0xff336699, intensity: 0.7,
+      finish: category === EFFECT.EYELINER || category === EFFECT.MASCARA ? null : FINISH.MATTE });
+  }
+  assert.equal(sdk.core.layers.size, 6);
+  await sdk.dispose();
+});
+
+test('keeps the upstream OpenMakeup API shape as a compatibility facade', async () => {
+  const p = ports();
+  p.renderer.supportedEffects = Object.values(EFFECT);
+  const sdk = await OpenMakeupCompat.create({ runtime: 'ts-js', ...p });
+  await sdk.init();
+  const result = await sdk.apply('lipstick', { color: '#b4002e', pattern: 1, finish: FINISH.GLOSSY });
+  assert.deepEqual(result, { category: 'lipstick', color: '#b4002e', finish: FINISH.GLOSSY, pattern: 6427 });
+  assert.equal(sdk.categories.includes('eyeline'), true);
   await sdk.dispose();
 });
