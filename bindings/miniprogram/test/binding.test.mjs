@@ -9,6 +9,7 @@ import {
   SdkError,
   create,
   OpenMakeupCompat,
+  createWechatMakeupSdk,
   normalizeFinish,
   normalizeFaceMeshResult,
   normalizeWechatFrame,
@@ -230,4 +231,28 @@ test('parses the upstream 468-point face mesh and morph targets without Three.js
   assert.equal(model.morphs.length, 12);
   assert.equal(model.morphNames[0], 'facemesh9');
   assert.equal(model.uvLip.length / 2, 468);
+});
+
+test('wires a complete WeChat host session without an OpenMakeupSDK dependency', async () => {
+  let cameraCallback;
+  const listener = { start() {}, stop() { cameraCallback = undefined; } };
+  const wx = {
+    createCameraContext() { return { onCameraFrame(callback) { cameraCallback = callback; return listener; } }; }
+  };
+  const renderer = {
+    supportedEffects: Object.values(EFFECT),
+    async initialize() { return STATUS.OK; },
+    async render() { return STATUS.OK; },
+    async capture() { return { path: '/tmp/wx.png' }; },
+    async dispose() { return STATUS.OK; }
+  };
+  const resources = { async loadManifest() { return STATUS.OK; }, async loadPattern() { return STATUS.OK; }, async release() { return STATUS.OK; } };
+  const points = Array.from({ length: 468 }, (_, i) => ({ x: (i % 20) / 20, y: Math.floor(i / 20) / 24, z: 0 }));
+  const sdk = await createWechatMakeupSdk({ wx, runtime: 'ts-js', renderer, resources,
+    faceMeshEstimate: async () => ({ multiFaceLandmarks: [points] }) });
+  const report = await sdk.initialize();
+  assert.equal(report.platform, 'wechat-miniprogram');
+  await sdk.start();
+  assert.equal(typeof cameraCallback, 'function');
+  await sdk.dispose();
 });

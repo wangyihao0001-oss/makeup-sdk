@@ -1,4 +1,7 @@
-import { STATUS, SdkError } from './makeup-sdk.js';
+import { STATUS, SdkError, create } from './makeup-sdk.js';
+import { EFFECT } from './constants.js';
+import { resolveUpstreamPattern } from './upstream-catalog.js';
+import { createWebGlMakeupRenderer } from './webgl-renderer.js';
 
 function frameBytes(data) {
   if (data instanceof ArrayBuffer) return new Uint8Array(data);
@@ -184,6 +187,83 @@ export function createWechatOpenMakeupTextureLoader({ createImage, resolveImage,
       image.src = source;
     });
   };
+}
+
+/**
+ * One-call WeChat host factory. The only runtime-specific callback that
+ * cannot be inferred safely is FaceMesh itself: callers provide either
+ * `faceMeshFactory`/`faceMeshEstimate` or an already-created tracker. All
+ * camera, filesystem, texture, WebGL and SDK ports are wired here.
+ */
+export async function createWechatMakeupSdk({
+  wx: wxApi,
+  canvas,
+  gl,
+  cameraContext,
+  faceMesh,
+  faceMeshFactory,
+  faceMeshEstimate,
+  faceMeshReset,
+  faceMeshDispose,
+  faceMeshOptions = {},
+  assetsBaseUrl = '',
+  wasmUrl,
+  wasmManifestUrl,
+  wasmManifest,
+  createImage,
+  resolveImage,
+  loadPatternTexture,
+  ...config
+} = {}) {
+  const wxObject = wxApi;
+  const fs = wxObject?.getFileSystemManager?.();
+  const readFile = fs?.readFile ? (filePath) => new Promise((resolve, reject) => fs.readFile({ filePath, success: resolve, fail: reject })) : undefined;
+  const downloadFile = wxObject?.downloadFile ? (url) => new Promise((resolve, reject) => wxObject.downloadFile({ url, success: resolve, fail: reject })) : undefined;
+  const resources = createWechatOpenMakeupResourcePort({ readFile, downloadFile, baseUrl: assetsBaseUrl });
+  const camera = cameraContext || wxObject?.createCameraContext?.();
+  const cameraPort = createWechatCameraPort({
+    subscribe: async (onFrame) => {
+      if (!camera?.onCameraFrame) throw new SdkError(STATUS.CAMERA_PERMISSION_DENIED, 'wx.createCameraContext().onCameraFrame is unavailable');
+      const listener = camera.onCameraFrame((event) => onFrame(event?.frame ?? event));
+      listener?.start?.();
+      return async () => listener?.stop?.();
+    }
+  });
+  const tracker = faceMesh || createWechatFaceMeshTracker({
+    create: faceMeshFactory,
+    estimate: faceMeshEstimate,
+    reset: faceMeshReset,
+    dispose: faceMeshDispose,
+    options: faceMeshOptions
+  });
+  const textureLoader = createWechatOpenMakeupTextureLoader({
+    createImage: createImage ?? (() => canvas?.createImage?.()),
+    resolveImage,
+    baseUrl: assetsBaseUrl
+  });
+  const renderer = gl ? createWebGlMakeupRenderer({
+    gl,
+    canvas,
+    loadAsset: resources.loadAsset,
+    loadTexture: textureLoader,
+    loadPatternTexture: loadPatternTexture ?? (async ({ category, patternId }) => {
+      const entry = resolveUpstreamPattern(category, patternId);
+      return entry ? textureLoader(entry.file) : null;
+    }),
+    canvasToTempFilePath: config.canvasToTempFilePath,
+    supportedEffects: Object.values(EFFECT)
+  }) : config.renderer;
+  return create({
+    ...config,
+    camera: config.camera ?? cameraPort,
+    tracker: config.tracker ?? tracker,
+    renderer: config.renderer ?? renderer,
+    resources: config.resources ?? resources,
+    resourceBaseUrl: assetsBaseUrl,
+    wasmUrl: wasmUrl ?? config.wasmUrl,
+    wasmManifestUrl: wasmManifestUrl ?? config.wasmManifestUrl,
+    wasmManifest: wasmManifest ?? config.wasmManifest
+  });
 }
 
 export function createWechatTrackerPort({ initialize, estimate, reset, dispose, probe }) {
