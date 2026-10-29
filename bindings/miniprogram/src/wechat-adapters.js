@@ -3,6 +3,9 @@ import { EFFECT } from './constants.js';
 import { resolveUpstreamPattern } from './upstream-catalog.js';
 import { createWebGlMakeupRenderer } from './webgl-renderer.js';
 
+let debugFrameLogged = false;
+let debugEstimateCount = 0;
+
 function frameBytes(data) {
   if (data instanceof ArrayBuffer) return new Uint8Array(data);
   if (ArrayBuffer.isView(data)) return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
@@ -56,17 +59,47 @@ function yuv420ToRgba(bytes, width, height, format) {
   return out;
 }
 
+function safeWechatBigInt(value, fallback = 0n) {
+  if (value == null) return fallback;
+  try {
+    if (typeof value === 'bigint') return value;
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? BigInt(Math.trunc(value)) : fallback;
+    }
+    const text = String(value).trim();
+    if (/^[+-]?\d+$/.test(text)) return BigInt(text);
+    const numeric = Number(text);
+    return Number.isFinite(numeric) ? BigInt(Math.trunc(numeric)) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export function normalizeWechatFrame(raw = {}) {
   const data = raw.data ?? raw.bytes ?? raw.pixelData;
   const width = Number(raw.width ?? raw.frameWidth ?? 0);
   const height = Number(raw.height ?? raw.frameHeight ?? 0);
   const orientation = Number(raw.orientation ?? raw.rotation ?? raw.rotate ?? 0);
-  const timestampNs = raw.timestampNs ?? (raw.timestamp != null ? BigInt(raw.timestamp) * 1000000n : 0n);
+  const timestampNs = raw.timestampNs != null
+    ? safeWechatBigInt(raw.timestampNs)
+    : raw.timestamp != null
+      ? safeWechatBigInt(raw.timestamp) * 1000000n
+      : 0n;
   const mirrored = Boolean(raw.mirrored ?? raw.isMirror ?? raw.mirror);
-  const declaredFormat = String(raw.pixelFormat ?? raw.format ?? 'RGBA8').toUpperCase();
+  const bytes = frameBytes(data);
+  const hasDeclaredFormat = raw.pixelFormat != null || raw.format != null;
+  const yuvSize = Math.max(0, width * height + 2 * Math.ceil(width / 2) * Math.ceil(height / 2));
+  const declaredFormat = hasDeclaredFormat
+    ? String(raw.pixelFormat ?? raw.format).toUpperCase()
+    : bytes?.byteLength === width * height * 4
+      ? 'RGBA8'
+      : bytes?.byteLength === width * height * 3
+        ? 'RGB24'
+        : bytes?.byteLength === yuvSize
+          ? 'NV12'
+          : 'RGBA8';
   let pixelFormat = declaredFormat;
   let normalizedData = data;
-  const bytes = frameBytes(data);
   if (bytes && (declaredFormat === 'RGB' || declaredFormat === 'RGB24')) {
     normalizedData = rgb24ToRgba(bytes, width, height); pixelFormat = 'RGBA8';
   } else if (bytes && ['I420', 'YUV420', 'NV12', 'NV21', 'YUV'].includes(declaredFormat)) {
@@ -78,8 +111,12 @@ export function normalizeWechatFrame(raw = {}) {
   if (!data || !Number.isInteger(width) || !Number.isInteger(height)) {
     throw new SdkError(STATUS.FRAME_INVALID, 'WeChat frame width, height and data are required');
   }
+  if (!debugFrameLogged && typeof console !== 'undefined') {
+    debugFrameLogged = true;
+    console.info('[makeup-sdk][debug] camera frame', { width, height, bytes: bytes?.byteLength ?? 0, declaredFormat, normalizedFormat: pixelFormat, normalizedBytes: frameBytes(normalizedData)?.byteLength ?? 0, orientation, mirrored });
+  }
   return {
-    timestampNs: BigInt(timestampNs),
+    timestampNs,
     width,
     height,
     pixelFormat: pixelFormat === 'BGRA' ? 'BGRA8' : pixelFormat,
@@ -96,6 +133,9 @@ export function normalizeWechatFrame(raw = {}) {
  */
 export function createWechatCameraPort({ subscribe, unsubscribe }) {
   let active = false;
+  let frameInFlight = false;
+  let lastFrameAt = 0;
+  const frameMinIntervalMs = 100;
   let stopSubscription;
   return {
     async start(onFrame) {
@@ -104,7 +144,26 @@ export function createWechatCameraPort({ subscribe, unsubscribe }) {
         throw new SdkError(STATUS.CAMERA_PERMISSION_DENIED, 'Camera subscription is unavailable');
       }
       try {
-        stopSubscription = await subscribe((rawFrame) => onFrame(normalizeWechatFrame(rawFrame)));
+        stopSubscription = await subscribe((rawFrame) => {
+        // FaceMesh.send is asynchronous and the runtime only has one pending
+        // result slot. Drop frames while one estimate is in flight instead of
+        // overwriting the pending resolver and hanging an older frame.
+        const now = Date.now();
+        if (now - lastFrameAt < frameMinIntervalMs || frameInFlight) return;
+        lastFrameAt = now;
+        frameInFlight = true;
+        let task;
+        try {
+          task = onFrame(normalizeWechatFrame(rawFrame));
+        } catch (error) {
+          frameInFlight = false;
+          throw error;
+        }
+        Promise.resolve(task).then(
+          () => { frameInFlight = false; },
+          () => { frameInFlight = false; },
+        );
+      });
         active = true;
         return STATUS.OK;
       } catch (error) {
@@ -117,6 +176,8 @@ export function createWechatCameraPort({ subscribe, unsubscribe }) {
       if (typeof stopSubscription === 'function') await stopSubscription();
       if (typeof unsubscribe === 'function') await unsubscribe();
       stopSubscription = undefined;
+      frameInFlight = false;
+      lastFrameAt = 0;
       active = false;
       return STATUS.OK;
     },
@@ -336,23 +397,69 @@ export function createWechatBundledFaceMeshTracker({ faceMeshClass, loadScript, 
     }
     if (typeof loadedClass !== 'function') throw new SdkError(STATUS.TRACKER_UNAVAILABLE, 'Bundled FaceMesh is not loaded; provide faceMeshClass or loadScript');
     const mesh = new loadedClass({ locateFile: locateFile ?? ((file) => `assets/mediapipe-face-mesh/${file}`) });
-    let pending;
-    mesh.onResults?.((result) => { pending?.(result); pending = undefined; });
+    let pendingResolve;
+    let pendingReject;
+    let pendingTimer;
+    const faceMeshResultTimeoutMs = 5000;
+    let fatalError;
+    const clearPending = () => {
+      if (pendingTimer !== undefined) clearTimeout(pendingTimer);
+      pendingResolve = undefined;
+      pendingReject = undefined;
+      pendingTimer = undefined;
+    };
+    mesh.onResults?.((result) => {
+      const resolve = pendingResolve;
+      clearPending();
+      resolve?.(result);
+    });
     return {
       async estimate(frame) {
+        if (fatalError) throw fatalError;
         if (typeof canvasFactory !== 'function') throw new SdkError(STATUS.TRACKER_UNAVAILABLE, 'A canvasFactory is required for bundled FaceMesh input');
         const input = await canvasFactory(frame.width, frame.height);
         const context = input?.getContext?.('2d');
         if (!context?.putImageData) throw new SdkError(STATUS.TRACKER_UNAVAILABLE, 'FaceMesh canvas must expose a 2D context');
         const rgba = frameBytes(frame.data);
         if (!rgba || rgba.byteLength !== frame.width * frame.height * 4) throw new SdkError(STATUS.FRAME_INVALID, 'FaceMesh requires RGBA8 frame data');
-        const imageData = typeof ImageData === 'function' ? new ImageData(new Uint8ClampedArray(rgba), frame.width, frame.height) : { data: new Uint8ClampedArray(rgba), width: frame.width, height: frame.height };
+        debugEstimateCount += 1;
+        if (debugEstimateCount <= 3 && typeof console !== 'undefined') console.info('[makeup-sdk][debug] FaceMesh input', { count: debugEstimateCount, width: frame.width, height: frame.height, bytes: rgba.byteLength, canvas: { width: input.width, height: input.height }, hasCreateImageData: typeof context.createImageData === 'function' });
+        const imageData = context.createImageData ? context.createImageData(frame.width, frame.height) : typeof ImageData === 'function' ? new ImageData(new Uint8ClampedArray(rgba), frame.width, frame.height) : { data: new Uint8ClampedArray(rgba), width: frame.width, height: frame.height };
+        if (imageData.data?.set) imageData.data.set(rgba);
         context.putImageData(imageData, 0, 0);
-        const result = await new Promise((resolve, reject) => { pending = resolve; Promise.resolve(mesh.send({ image: input })).catch(reject); });
+        const result = await new Promise((resolve, reject) => {
+          pendingResolve = resolve;
+          pendingReject = reject;
+          pendingTimer = setTimeout(() => {
+            if (pendingResolve !== resolve) return;
+            clearPending();
+            const error = new SdkError(STATUS.TRACKER_UNAVAILABLE, 'FaceMesh result timeout');
+            fatalError = error;
+            console.error('[makeup-sdk][debug] FaceMesh result timeout', error.message);
+            reject(error);
+          }, faceMeshResultTimeoutMs);
+          let sending;
+          try {
+            sending = mesh.send({ image: { width: frame.width, height: frame.height, data: new Uint8Array(rgba) } });
+          } catch (error) {
+            fatalError = error;
+            console.error('[makeup-sdk][debug] FaceMesh send threw', error?.stack ?? error);
+            if (pendingResolve === resolve) clearPending();
+            reject(error);
+            return;
+          }
+          Promise.resolve(sending).catch((error) => {
+            fatalError = error;
+            console.error('[makeup-sdk][debug] FaceMesh send rejected', error?.stack ?? error);
+            if (pendingResolve === resolve) clearPending();
+            reject(error);
+          });
+        });
+        if (debugEstimateCount <= 3 && typeof console !== 'undefined') { const faces = result?.multiFaceLandmarks ?? result?.faces ?? []; console.info('[makeup-sdk][debug] FaceMesh result', { count: debugEstimateCount, faces: Array.isArray(faces) ? faces.length : -1, points: Array.isArray(faces?.[0]) ? faces[0].length : 0 }); }
         return result;
       },
       async setOptions(value) { await mesh.setOptions?.(value); },
-      async close() { await mesh.close?.(); pending = undefined; }
+      async close() { clearPending(); await mesh.close?.(); }
     };
   };
   return createWechatFaceMeshTracker({ create, options, probe: () => Boolean(faceMeshClass || loadScript || globalThis?.FaceMesh) });

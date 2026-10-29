@@ -429,8 +429,9 @@ export class MakeupSdkSession {
 
   async #onFrame(rawFrame) {
     if (!this.started || this.disposed) return;
+    let frame;
     try {
-      const frame = validateFrame(rawFrame);
+      frame = validateFrame(rawFrame);
       if (frame.width > this.core.maxFrameWidth || frame.height > this.core.maxFrameHeight) {
         throw new SdkError(STATUS.FRAME_INVALID, 'Frame exceeds capability limits');
       }
@@ -448,6 +449,17 @@ export class MakeupSdkSession {
       await this.renderer.render(frame, tracking, Object.fromEntries(this.core.layers));
       this.emit('frame', { frame, tracking });
     } catch (error) {
+      // Keep the live camera visible while tracking is recovering. FaceMesh
+      // errors must not turn the WebGL preview into a black rectangle.
+      if (frame) {
+        try {
+          await this.renderer.render(frame, { faceCount: 0, landmarks: [] }, {});
+        } catch {
+          // The original error below is the useful diagnostic.
+        }
+      }
+      const now = Date.now();
+      if (!this._debugLastFrameErrorAt || now - this._debugLastFrameErrorAt > 2000) { this._debugLastFrameErrorAt = now; if (typeof console !== 'undefined') console.error('[makeup-sdk][debug] frame rejected', { status: error?.status, name: error?.name, message: error?.message ?? String(error), frame: frame ? { width: frame.width, height: frame.height, bytes: frame.data?.byteLength ?? frame.data?.length ?? 0 } : null }); }
       this.emit('error', error);
     }
   }
