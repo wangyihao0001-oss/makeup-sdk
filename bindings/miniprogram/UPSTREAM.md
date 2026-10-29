@@ -11,3 +11,6 @@
 本移植保留上游的类别、纹样、材质、shader、468 点网格和 morph 语义；
 `openmakeup-webgl-renderer.js` 用无 Three.js 的 glTF/WebGL 实现替换 Three.js 场景，
 `wechat-adapters.js` 则把相机、FaceMesh、图片和资源加载接到微信宿主回调。
+
+为限定运行时边界，内置 `face_mesh.js` 已移除浏览器平台探测，
+`useCpuInference` 默认关闭；宿主如有需要仍可通过 FaceMesh options 显式设置。

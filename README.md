@@ -9,7 +9,7 @@
 ```text
 core/                 共享 C++ 核心与 C ABI
 bindings/miniprogram/ 小程序集成边界（JS/TS/WASM）
-renderers/            各平台渲染器预留目录
+renderers/            小程序渲染器预留目录
 examples/             本地示例
 docs/                 架构与开发说明
 ```

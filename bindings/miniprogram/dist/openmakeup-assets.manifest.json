@@ -71,8 +71,8 @@
     },
     {
       "path": "mediapipe-face-mesh/face_mesh.js",
-      "size": 64913,
-      "sha256": "5db8555ac80ca2ad7366fbb3ea53c0d0959609fc9abb7b8be37a74ec1ac4ba9c"
+      "size": 64748,
+      "sha256": "e5a3b3efb1547e12197f6f8bcba990aff7ebc4e0867536d03185dad5b9f3ca1b"
     },
     {
       "path": "mediapipe-face-mesh/index.d.ts",

@@ -6,7 +6,7 @@
 
 ## 1. 文档目的
 
-本文为 Makeup SDK 重写项目的技术实施方案。当前交付范围已收敛为 OpenMakeupSDK 到微信小程序的重写；仓库不包含 其他移动平台适配逻辑。
+本文为 Makeup SDK 重写项目的技术实施方案。当前交付范围已收敛为 OpenMakeupSDK 到微信小程序的重写。
 
 本文针对当前仓库的实际状态编写：共享核心已提供 v1/v2 ABI、状态机、事件队列、帧校验及清理竞态回归测试；小程序已提供 WASM/TS-JS binding、内置 FaceMesh tracker、无 Three.js 的上游网格/shader renderer、微信宿主工厂和资源清单；真实设备验证仍未完成。
 
@@ -26,7 +26,7 @@
   → 用户主动保存
 ```
 
-核心运行时必须平台无关。摄像头、纹理、Surface、Metal/WebGL 对象和页面生命周期由平台适配层管理，不能泄漏到共享核心。
+核心运行时必须与宿主对象解耦。摄像头、纹理、WebGL 对象和页面生命周期由微信宿主适配层管理，不能泄漏到共享核心。
 
 ### 2.2 业务能力
 
@@ -95,9 +95,8 @@
 └───────────────┬──────────────────┬─────────────────────────┘
                 │ 注入端口           │ 纯数据协议
 ┌───────────────┴───────┐  ┌───────┴─────────────────────────┐
-│ 平台采集与追踪         │  │ 平台渲染与资源                   │
-│ CameraX / AVFoundation │  │ OpenGL/Vulkan / Metal / WebGL   │
-│ Face tracker           │  │ shader / mask / texture / cache │
+│ 微信相机与 FaceMesh    │  │ 微信 WebGL 渲染与资源            │
+│ 帧格式 / 追踪结果      │  │ shader / mask / texture / cache │
 └───────────────────────┘  └─────────────────────────────────┘
 ```
 
@@ -118,7 +117,7 @@
 
 - 打开摄像头
 - 请求权限
-- 创建窗口或 Surface
+- 创建窗口或持有页面对象
 - 持有微信 camera、canvas、WebGL context 或页面对象
 - 直接访问 `window`、`document`、HTML media、Three.js 或平台线程 API
 
@@ -484,7 +483,7 @@ H5 仅可作为开发联调适配器，不能替代微信小程序真机验收�
 5. 依据 finish 选择不同 alpha、高光和混合模式。
 6. 将结果合成到当前帧。
 
-核心只描述效果参数和 effect graph，不直接编写 OpenGL、Metal 或 WebGL 调用。
+核心只描述效果参数和 effect graph，不直接编写 WebGL 调用。
 
 ### 10.2 颜色和 alpha
 
@@ -521,8 +520,7 @@ manifest 建议包含：
   "models": [],
   "shaders": [],
   "patterns": [],
-  "effects": [],
-  "platformOverrides": {}
+  "effects": []
 }
 ```
 
@@ -531,7 +529,7 @@ manifest 建议包含：
 - 稳定 ID
 - 内容哈希
 - 版本
-- 平台和 renderer backend
+- 宿主和 renderer backend
 - 下载地址或资源键
 - 许可信息
 - 最小 SDK API 版本

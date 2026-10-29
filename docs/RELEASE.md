@@ -14,4 +14,4 @@
 
 回滚通过重新指向上一个 GitHub Release，并保留历史 artifact 与 checksum；不覆盖已发布的版本号。
 
-本项目只发布微信小程序 WASM/npm 包；其他移动端适配不属于本仓库。
+本项目只发布微信小程序 WASM/npm 包。
