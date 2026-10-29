@@ -44,6 +44,8 @@ export function normalizeFinish(finish: Finish): Exclude<Finish, 'dewy'>;
 export function runMiniProgramProbe(options: MakeupSdkConfig & { device?: Record<string, string> }): Promise<Record<string, unknown>>;
 export function loadWasmCore(options: MakeupSdkConfig): Promise<unknown>;
 export function sha256Hex(bytes: ArrayBuffer, digest?: MakeupSdkConfig['sha256']): Promise<string>;
+export interface OpenMakeupAssetFile { path: string; size: number; sha256: string; group?: string; }
+export function assetPathsForCategories(manifest: { files?: OpenMakeupAssetFile[] } | null | undefined, categories?: readonly string[]): string[];
 export function normalizeWechatFrame(frame: unknown): MakeupFrame;
 export function normalizeFaceMeshResult(results: unknown, frame?: MakeupFrame): TrackingResult;
 export function createWechatFaceMeshTracker(options?: { create?: Function; estimate?: Function; reset?: Function; dispose?: Function; options?: Record<string, unknown>; probe?: Function }): MakeupSdkConfig['tracker'];

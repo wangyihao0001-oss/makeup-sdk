@@ -5,9 +5,7 @@
 ## SDK 当前状态（2026-10-26）
 
 SDK 已从 mock/口红最小 renderer 进入独立小程序 binding 阶段：不依赖外部
-OpenMakeupSDK，npm 包内置 WASM、FaceMesh 资源、468 点网格、六类妆效 shader、73 个纹样
-和微信宿主一键工厂 `createWechatMakeupSdk()`。阿里云服务器回归结果为原生 CTest 6/6、
-WASM CTest 2/2、小程序测试 18/18；npm 包检查包含 140 个文件。
+OpenMakeupSDK。npm 代码包只包含 JS/TS binding、核心 WASM、资源清单和微信宿主工厂 `createWechatMakeupSdk()`。FaceMesh SIMD 运行时、468 点网格、六类妆效 shader 和 73 个纹样放在独立静态资源包，按清单下载到微信用户目录。绑定测试 23/23。上次记录的服务器回归为原生 CTest 6/6、WASM CTest 2/2。
 
 当前 SDK 代码已覆盖相机帧归一化、内置 FaceMesh tracker、WebGL 网格渲染、pattern/morph、
 WASM/TS-JS fallback、捕获和释放。真实微信设备的基础库、GPU、FaceMesh 输入、持续帧率、

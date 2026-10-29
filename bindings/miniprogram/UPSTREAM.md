@@ -14,3 +14,4 @@
 
 为限定运行时边界，内置 `face_mesh.js` 已移除浏览器平台探测，
 `useCpuInference` 默认关闭；宿主如有需要仍可通过 FaceMesh options 显式设置。
+FaceMesh 只保留 SIMD 运行时。非 SIMD 二进制、Blender 源文件和 `uv-checker` 调试贴图不进入资源包。

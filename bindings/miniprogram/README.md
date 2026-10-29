@@ -18,19 +18,18 @@ SDK、API、WASM、资源清单版本、文件大小、SHA-256 和必需导出�
 
 `src/webgl-renderer.js` 保留合同测试用的轻量 renderer；`src/openmakeup-webgl-renderer.js`
 是完整的无 Three.js WebGL 移植：读取上游 `face.glb` 的 468 顶点、索引、UV 通道和
-morph targets，编译上游六类妆效 shader，按 FaceMesh 每帧更新网格，并支持纹样纹理、
+morph targets，在对应妆效第一次绘制时编译上游 shader，按 FaceMesh 每帧更新网格，并支持纹样纹理、
 颜色、finish、morph、wireframe、blur 和捕获。它要求宿主提供 `loadAsset`（微信端可用
 `createWechatOpenMakeupAssetLoader()`）以及 WebGL canvas，通过
 `canvasToTempFilePath` 导出当前帧。上游 OpenMakeupSDK 的模型、shader、纹样和 FaceMesh 资源位于 `assets/`，移植来源和固定提交见 `UPSTREAM.md`；
-`dist/openmakeup-assets.manifest.json` 记录 73 个纹样、模型、shader 和 FaceMesh 文件的版本与 SHA-256。
+`dist/openmakeup-assets.manifest.json` 记录纹样、模型、shader 和 SIMD FaceMesh 文件的版本、SHA-256 和加载分组。这些文件不打进小程序代码包，也不在 npm 包的 `files` 里。
 
 真实微信项目需要把小程序 camera、FaceMesh、WebGL canvas 和临时文件导出 API 通过
 `src/wechat-adapters.js` 适配到这些端口；模块加载时不会读取 `wx`、`window` 或 `document`。
 
-`createWechatMakeupSdk()` 会默认创建包内的 FaceMesh tracker，并从
-`assets/mediapipe-face-mesh/` 加载模型资源。若页面没有预加载 `FaceMesh` 类，只需提供
-`faceMeshScriptLoader`；若运行时不能直接接收 RGBA canvas，则提供
-`faceMeshCanvasFactory`。业务项目不需要引用 OpenMakeupSDK。
+`createWechatMakeupSdk({ assetsBaseUrl })` 从静态资源前缀加载 FaceMesh、模型和妆效资源。远程地址会先读取 `openmakeup-assets.manifest.json`，再按 SHA-256 缓存到微信用户目录。FaceMesh 在创建会话时下载；`face.glb`、着色器和纹样在对应妆效第一次绘制时下载。CDN 需要对 `.wasm` 和 `.js` 开启 gzip 或 brotli。宿主需提供可执行 WASM SIMD 的基础库。
+
+若页面没有预加载 `FaceMesh` 类，只需提供 `faceMeshScriptLoader`；若运行时不能直接接收 RGBA canvas，则提供 `faceMeshCanvasFactory`。业务项目不需要引用 OpenMakeupSDK。资源包用 `npm run pack:assets` 生成，上传后把目录地址传给 `assetsBaseUrl`。
 
 典型接入方式是把资源端口的 `loadAsset` 传给 renderer，再用宿主 canvas 的图片工厂提供
 `loadTexture`：

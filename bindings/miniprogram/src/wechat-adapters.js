@@ -1,10 +1,38 @@
 import { STATUS, SdkError, create } from './makeup-sdk.js';
 import { EFFECT } from './constants.js';
+import { createWechatAssetCache } from './asset-cache.js';
 import { resolveUpstreamPattern } from './upstream-catalog.js';
 import { createWebGlMakeupRenderer } from './webgl-renderer.js';
 
 let debugFrameLogged = false;
 let debugEstimateCount = 0;
+
+function joinUrl(base, path) {
+  const left = String(base ?? '').replace(/\/$/, '');
+  const right = String(path ?? '').replace(/^\//, '');
+  if (!left) return right;
+  return `${left}/${right}`;
+}
+
+function relativeAssetPath(url, baseUrl = '') {
+  const value = String(url ?? '');
+  const base = String(baseUrl ?? '').replace(/\/$/, '');
+  if (base && (value === base || value.startsWith(`${base}/`))) return value.slice(base.length).replace(/^\//, '');
+  if (!/^https?:\/\//i.test(value)) return value.replace(/^\//, '');
+  return null;
+}
+
+function isRemoteUrl(url) {
+  return /^https?:\/\//i.test(String(url ?? ''));
+}
+
+function decodeJson(bytes) {
+  if (typeof bytes === 'string') return JSON.parse(bytes);
+  if (bytes instanceof ArrayBuffer) return JSON.parse(new TextDecoder().decode(new Uint8Array(bytes)));
+  if (ArrayBuffer.isView(bytes)) return JSON.parse(new TextDecoder().decode(bytes));
+  if (bytes?.data) return decodeJson(bytes.data);
+  return bytes;
+}
 
 function frameBytes(data) {
   if (data instanceof ArrayBuffer) return new Uint8Array(data);
@@ -190,13 +218,13 @@ export function createWechatCameraPort({ subscribe, unsubscribe }) {
  * provide either a local-file reader or a download callback; no wx global is
  * accessed by this module.
  */
-export function createWechatOpenMakeupResourcePort({ readFile, downloadFile, baseUrl = '' } = {}) {
-  const load = createWechatWasmLoader({ readFile, downloadFile });
-  const resolve = (path) => `${String(baseUrl).replace(/\/$/, '')}/${String(path).replace(/^\//, '')}`;
+export function createWechatOpenMakeupResourcePort({ readFile, downloadFile, baseUrl = '', load } = {}) {
+  const loadBytes = load ?? createWechatWasmLoader({ readFile, downloadFile, baseUrl });
+  const resolve = (path) => joinUrl(baseUrl, path);
   let manifest;
   return {
     async loadManifest() {
-      const bytes = await load({ url: resolve('patterns/patterns.json') });
+      const bytes = await loadBytes({ url: resolve('patterns/patterns.json') });
       const text = typeof bytes === 'string' ? bytes : new TextDecoder().decode(bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : bytes);
       manifest = JSON.parse(text);
       return STATUS.OK;
@@ -206,12 +234,12 @@ export function createWechatOpenMakeupResourcePort({ readFile, downloadFile, bas
       const categories = Object.values(manifest.categories ?? {});
       const entry = categories.flat().find((pattern) => String(pattern.id) === String(patternId));
       if (!entry) throw new SdkError(STATUS.ASSET_LOAD_FAILED, `Pattern ${patternId} is not present in manifest ${version}`);
-      await load({ url: resolve(entry.file) });
+      await loadBytes({ url: resolve(entry.file) });
       return STATUS.OK;
     },
     async release() { manifest = undefined; return STATUS.OK; },
     probe() { return typeof readFile === 'function' || typeof downloadFile === 'function'; },
-    async loadAsset(path) { return load({ url: resolve(path) }); },
+    async loadAsset(path) { return loadBytes({ url: resolve(path) }); },
     getManifest() { return manifest; },
     resolve
   };
@@ -223,10 +251,10 @@ export function createWechatOpenMakeupResourcePort({ readFile, downloadFile, bas
  * page can feed binary GLB/GLSL data to createOpenMakeupWebGlRenderer without
  * coupling the renderer to wx globals.
  */
-export function createWechatOpenMakeupAssetLoader({ readFile, downloadFile, baseUrl = '' } = {}) {
-  const load = createWechatWasmLoader({ readFile, downloadFile });
-  const resolve = (path) => `${String(baseUrl).replace(/\/$/, '')}/${String(path).replace(/^\//, '')}`;
-  return async (path) => load({ url: resolve(path) });
+export function createWechatOpenMakeupAssetLoader({ readFile, downloadFile, baseUrl = '', load } = {}) {
+  const loadBytes = load ?? createWechatWasmLoader({ readFile, downloadFile, baseUrl });
+  const resolve = (path) => joinUrl(baseUrl, path);
+  return async (path) => loadBytes({ url: resolve(path) });
 }
 
 /**
@@ -236,12 +264,13 @@ export function createWechatOpenMakeupAssetLoader({ readFile, downloadFile, base
  * image object. This keeps all WeChat-specific image lifecycle details out of
  * the renderer.
  */
-export function createWechatOpenMakeupTextureLoader({ createImage, resolveImage, baseUrl = '' } = {}) {
-  const resolve = (path) => `${String(baseUrl).replace(/\/$/, '')}/${String(path).replace(/^\//, '')}`;
+export function createWechatOpenMakeupTextureLoader({ createImage, resolveImage, baseUrl = '', materialize } = {}) {
+  const resolve = (path) => joinUrl(baseUrl, path);
   return async (path) => {
     if (typeof createImage !== 'function') throw new SdkError(STATUS.ASSET_LOAD_FAILED, 'A WeChat image factory is required for shader textures');
     const image = await createImage();
-    const source = typeof resolveImage === 'function' ? await resolveImage(resolve(path)) : resolve(path);
+    const cached = typeof materialize === 'function' ? await materialize(path) : null;
+    const source = cached || (typeof resolveImage === 'function' ? await resolveImage(resolve(path)) : resolve(path));
     return new Promise((resolveResult, reject) => {
       image.onload = () => resolveResult(image);
       image.onerror = (error) => reject(new SdkError(STATUS.ASSET_LOAD_FAILED, `Texture load failed: ${path}`, error));
@@ -281,9 +310,36 @@ export async function createWechatMakeupSdk({
 } = {}) {
   const wxObject = wxApi;
   const fs = wxObject?.getFileSystemManager?.();
-  const readFile = fs?.readFile ? (filePath) => new Promise((resolve, reject) => fs.readFile({ filePath, success: resolve, fail: reject })) : undefined;
-  const downloadFile = wxObject?.downloadFile ? (url) => new Promise((resolve, reject) => wxObject.downloadFile({ url, success: resolve, fail: reject })) : undefined;
-  const resources = createWechatOpenMakeupResourcePort({ readFile, downloadFile, baseUrl: assetsBaseUrl });
+  const call = (fn, payload) => new Promise((resolve, reject) => fn({ ...payload, success: resolve, fail: reject }));
+  const readFile = fs?.readFile ? (filePath) => call(fs.readFile, { filePath }) : undefined;
+  const downloadFile = wxObject?.downloadFile ? (url) => call(wxObject.downloadFile, { url }) : undefined;
+  const writeFile = fs?.writeFile ? (filePath, data) => call(fs.writeFile, { filePath, data }) : undefined;
+  const stat = fs?.stat ? async (filePath) => {
+    const result = await call(fs.stat, { path: filePath });
+    return result?.stats?.size ?? result?.size;
+  } : undefined;
+  const mkdir = fs?.mkdir ? (dirPath) => call(fs.mkdir, { dirPath, recursive: true }) : undefined;
+  const userDataPath = wxObject?.env?.USER_DATA_PATH;
+  const bareLoader = createWechatWasmLoader({ readFile, downloadFile });
+  let assetManifest = null;
+  if (isRemoteUrl(assetsBaseUrl)) {
+    try {
+      assetManifest = decodeJson(await bareLoader({ url: joinUrl(assetsBaseUrl, 'openmakeup-assets.manifest.json') }));
+    } catch (error) {
+      console.error?.('[makeup-sdk] asset manifest unavailable', error?.message ?? error);
+    }
+  }
+  const cache = assetManifest && userDataPath && writeFile && stat
+    ? createWechatAssetCache({ userDataPath, manifest: assetManifest, stat, writeFile, mkdir })
+    : null;
+  const load = createWechatWasmLoader({ readFile, downloadFile, cache, baseUrl: assetsBaseUrl });
+  const useBundledTracker = !faceMesh && !faceMeshFactory && !faceMeshEstimate;
+  if (cache && useBundledTracker) {
+    for (const file of cache.filesInGroup('faceMesh')) await load({ url: joinUrl(assetsBaseUrl, file.path) });
+  }
+  const faceMeshBase = joinUrl(assetsBaseUrl || 'assets', 'mediapipe-face-mesh');
+  const locateFaceMesh = (file) => cache?.localPath(`mediapipe-face-mesh/${file}`) ?? `${faceMeshBase}/${file}`;
+  const resources = createWechatOpenMakeupResourcePort({ readFile, downloadFile, baseUrl: assetsBaseUrl, load });
   const camera = cameraContext || wxObject?.createCameraContext?.();
   const cameraPort = createWechatCameraPort({
     subscribe: async (onFrame) => {
@@ -295,11 +351,16 @@ export async function createWechatMakeupSdk({
   });
   const tracker = faceMesh || (faceMeshFactory || faceMeshEstimate
     ? createWechatFaceMeshTracker({ create: faceMeshFactory, estimate: faceMeshEstimate, reset: faceMeshReset, dispose: faceMeshDispose, options: faceMeshOptions })
-    : createWechatBundledFaceMeshTracker({ faceMeshClass, loadScript: faceMeshScriptLoader, canvasFactory: faceMeshCanvasFactory, options: faceMeshOptions }));
+    : createWechatBundledFaceMeshTracker({ faceMeshClass, loadScript: faceMeshScriptLoader, canvasFactory: faceMeshCanvasFactory, options: faceMeshOptions, locateFile: locateFaceMesh }));
   const textureLoader = createWechatOpenMakeupTextureLoader({
     createImage: createImage ?? (() => canvas?.createImage?.()),
     resolveImage,
-    baseUrl: assetsBaseUrl
+    baseUrl: assetsBaseUrl,
+    materialize: cache ? async (path) => {
+      if (await cache.ensureLocal(path)) return cache.localPath(path);
+      await load({ url: joinUrl(assetsBaseUrl, path) });
+      return cache.localPath(path);
+    } : undefined
   });
   const renderer = gl ? createWebGlMakeupRenderer({
     gl,
@@ -388,15 +449,16 @@ export function createWechatBundledFaceMeshTracker({ faceMeshClass, loadScript, 
   let loadedClass = faceMeshClass;
   const create = async () => {
     if (!loadedClass && typeof globalThis !== 'undefined') loadedClass = globalThis.FaceMesh;
+    const resolveFile = locateFile ?? ((file) => `assets/mediapipe-face-mesh/${file}`);
     if (!loadedClass && typeof loadScript === 'function') {
       const loaded = await loadScript({
-        script: 'assets/mediapipe-face-mesh/face_mesh.js',
-        locateFile: locateFile ?? ((file) => `assets/mediapipe-face-mesh/${file}`)
+        script: resolveFile('face_mesh.js'),
+        locateFile: resolveFile
       });
       loadedClass = loaded?.FaceMesh ?? loaded ?? (typeof globalThis !== 'undefined' ? globalThis.FaceMesh : undefined);
     }
     if (typeof loadedClass !== 'function') throw new SdkError(STATUS.TRACKER_UNAVAILABLE, 'Bundled FaceMesh is not loaded; provide faceMeshClass or loadScript');
-    const mesh = new loadedClass({ locateFile: locateFile ?? ((file) => `assets/mediapipe-face-mesh/${file}`) });
+    const mesh = new loadedClass({ locateFile: resolveFile });
     let pendingResolve;
     let pendingReject;
     let pendingTimer;
@@ -474,9 +536,30 @@ export function createWechatResourcePort({ loadManifest, loadPattern, release, p
   };
 }
 
-export function createWechatWasmLoader({ downloadFile, readFile } = {}) {
+async function bytesFromDownload(result, readFile) {
+  if (result?.statusCode !== undefined && result.statusCode !== 200) {
+    throw new SdkError(STATUS.ASSET_LOAD_FAILED, `Asset download failed with status ${result.statusCode}`);
+  }
+  if (result?.tempFilePath && typeof readFile === 'function') {
+    const file = await readFile(result.tempFilePath);
+    return file?.data ?? file;
+  }
+  return result?.data ?? result;
+}
+
+export function createWechatWasmLoader({ downloadFile, readFile, cache, baseUrl = '' } = {}) {
   return async ({ url }) => {
-    if (typeof readFile === 'function' && !/^https?:\/\//i.test(url)) {
+    const remote = isRemoteUrl(url);
+    const relativePath = remote ? relativeAssetPath(url, baseUrl) : null;
+    const entry = cache && relativePath ? cache.entry(relativePath) : null;
+    if (entry) {
+      const local = await cache.ensureLocal(relativePath);
+      if (local && typeof readFile === 'function') {
+        const cached = await readFile(local);
+        return cached?.data ?? cached;
+      }
+    }
+    if (typeof readFile === 'function' && !remote) {
       const result = await readFile(url);
       return result?.data ?? result;
     }
@@ -484,12 +567,9 @@ export function createWechatWasmLoader({ downloadFile, readFile } = {}) {
       throw new SdkError(STATUS.ASSET_LOAD_FAILED,
         'A WeChat downloadFile callback is required for remote WASM artifacts');
     }
-    const result = await downloadFile(url);
-    if (result?.statusCode !== undefined && result.statusCode !== 200) {
-      throw new SdkError(STATUS.ASSET_LOAD_FAILED,
-        `WASM download failed with status ${result.statusCode}`);
-    }
-    return result?.data ?? result;
+    const bytes = await bytesFromDownload(await downloadFile(url), readFile);
+    if (entry) await cache.writeBytes(relativePath, bytes);
+    return bytes;
   };
 }
 

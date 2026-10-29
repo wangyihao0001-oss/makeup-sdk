@@ -65,7 +65,7 @@
 - `renderers/README.md`：渲染器预留说明
 - `docs/specs/rewrite-makeup-sdk/`：重写规格和任务清单
 
-当前实现同时保留 v1 同步 ABI，并提供 v2 的宿主驱动生命周期、事件队列、帧校验和妆效清理状态机。小程序 binding 提供 WASM 优先、TS/JS fallback、资源缓存、内置 FaceMesh、468 点 face.glb 解析、六类上游 shader renderer、pattern/morph、微信帧格式转换和一键宿主工厂。服务器回归为原生 6/6、WASM 2/2、小程序 18/18；真实微信设备仍需完成 capability report。帧校验支持 RGBA8/BGRA8，并由微信适配器把 RGB/YUV 转为 RGBA8。
+当前实现同时保留 v1 同步 ABI，并提供 v2 的宿主驱动生命周期、事件队列、帧校验和妆效清理状态机。小程序 binding 提供 WASM 优先、TS/JS fallback、资源缓存、内置 FaceMesh、468 点 face.glb 解析、六类上游 shader renderer、pattern/morph、微信帧格式转换和一键宿主工厂。绑定测试 23/23；上次记录的服务器回归为原生 6/6、WASM 2/2。真实微信设备仍需完成 capability report。帧校验支持 RGBA8/BGRA8，并由微信适配器把 RGB/YUV 转为 RGBA8。
 
 当前 ABI 还有两个需要尽快修正的契约问题：
 

@@ -519,6 +519,19 @@ export function createOpenMakeupWebGlRenderer({
     if (wireframe && gl.polygonMode) gl.polygonMode(gl.FRONT_AND_BACK, gl.FILL);
     return true;
   };
+  const ensureProgram = async (category) => {
+    if (programs.has(category)) return programs.get(category);
+    if (!supportedEffects.includes(category)) return null;
+    const [vertex, fragment] = await Promise.all([shader(category, 'vertex'), shader(category, 'fragment')]);
+    if (!vertex || !fragment) return null;
+    const vertexText = typeof vertex === 'string' ? vertex : new TextDecoder().decode(asBytes(vertex));
+    let fragmentText = typeof fragment === 'string' ? fragment : new TextDecoder().decode(asBytes(fragment));
+    if (EYE_STRIP_CATEGORIES.has(category)) fragmentText = fragmentText.replace(/texture2D\(\s*map\s*,\s*([A-Za-z_]\w*)\s*\)/g, 'texture2D(map, vec2($1.x, 1.0 - $1.y))');
+    const canUseModern = modern && !/\battribute\b|\bvarying\b|\bgl_FragColor\b/.test(`${vertexText}\n${fragmentText}`);
+    const compiled = program(gl, compile(gl, gl.VERTEX_SHADER, shaderSource(vertexText, 'vertex', canUseModern)), compile(gl, gl.FRAGMENT_SHADER, shaderSource(fragmentText, 'fragment', canUseModern)));
+    programs.set(category, compiled);
+    return compiled;
+  };
 
   return {
     supportedEffects: [...supportedEffects],
@@ -550,23 +563,16 @@ export function createOpenMakeupWebGlRenderer({
       stripBuffers = { position: gl.createBuffer(), uv: gl.createBuffer(), indices: gl.createBuffer() };
       gl.bindBuffer(gl.ARRAY_BUFFER, stripBuffers.uv); gl.bufferData(gl.ARRAY_BUFFER, EYE_STRIP_UV, gl.STATIC_DRAW);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, stripBuffers.indices); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, EYE_STRIP_INDICES, gl.STATIC_DRAW);
-      for (const category of supportedEffects) {
-        const [vertex, fragment] = await Promise.all([shader(category, 'vertex'), shader(category, 'fragment')]);
-        if (!vertex || !fragment) continue;
-        const vertexText = typeof vertex === 'string' ? vertex : new TextDecoder().decode(asBytes(vertex));
-        let fragmentText = typeof fragment === 'string' ? fragment : new TextDecoder().decode(asBytes(fragment));
-        if (EYE_STRIP_CATEGORIES.has(category)) fragmentText = fragmentText.replace(/texture2D\(\s*map\s*,\s*([A-Za-z_]\w*)\s*\)/g, 'texture2D(map, vec2($1.x, 1.0 - $1.y))');
-        const canUseModern = modern && !/\battribute\b|\bvarying\b|\bgl_FragColor\b/.test(`${vertexText}\n${fragmentText}`);
-        const p = program(gl, compile(gl, gl.VERTEX_SHADER, shaderSource(vertexText, 'vertex', canUseModern)), compile(gl, gl.FRAGMENT_SHADER, shaderSource(fragmentText, 'fragment', canUseModern)));
-        programs.set(category, p);
-      }
       initialized = true;
       return STATUS.OK;
     },
     async render(frame, tracking, layers) {
       if (!initialized) throw new SdkError(STATUS.RENDERER_UNAVAILABLE, 'Renderer is not initialized');
       const prepared = [];
-      for (const [category, params] of Object.entries(layers ?? {})) prepared.push([category, params, await prepareLayerTextures(category, params)]);
+      for (const [category, params] of Object.entries(layers ?? {})) {
+        await ensureProgram(category);
+        prepared.push([category, params, await prepareLayerTextures(category, params)]);
+      }
       if (gl.isContextLost?.()) throw new SdkError(STATUS.GPU_CONTEXT_LOST, 'WebGL context is lost');
       viewportWidth = Number(canvas?.width) > 0 ? Number(canvas.width) : frame.width;
       viewportHeight = Number(canvas?.height) > 0 ? Number(canvas.height) : frame.height;

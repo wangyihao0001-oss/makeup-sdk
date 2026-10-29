@@ -1,3 +1,5 @@
+export * from './asset-manifest.js';
+export { createWechatAssetCache } from './asset-cache.js';
 export * from './makeup-sdk.js';
 export * from './probe.js';
 export * from './webgl-renderer.js';
