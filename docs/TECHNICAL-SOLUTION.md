@@ -1,14 +1,14 @@
 # Makeup SDK 技术方案
 
 版本：v1.1
-日期：2026-10-26
-状态：代码级小程序移植已完成，真实微信设备验收待补
+日期：2026-11-12
+状态：小程序 SDK 已接入 `dress` 微信试妆页，微信真机验收待补
 
 ## 1. 文档目的
 
 本文为 Makeup SDK 重写项目的技术实施方案。当前交付范围已收敛为 OpenMakeupSDK 到微信小程序的重写。
 
-本文针对当前仓库的实际状态编写：共享核心已提供 v1/v2 ABI、状态机、事件队列、帧校验及清理竞态回归测试；小程序已提供 WASM/TS-JS binding、内置 FaceMesh tracker、无 Three.js 的上游网格/shader renderer、微信宿主工厂和资源清单；真实设备验证仍未完成。
+共享核心提供 v1/v2 ABI、状态机、事件队列、帧校验及清理竞态回归测试。小程序提供 WASM/TS-JS binding、FaceMesh tracker、无 Three.js 的上游网格和 shader renderer、微信宿主工厂和资源清单。`dress` 的页面接入、业务构建补丁和验证情况见[业务接入状态](integration/FRONTEND-SDK-STATUS.md)。
 
 ## 2. 建设目标
 
@@ -67,12 +67,7 @@
 
 当前实现同时保留 v1 同步 ABI，并提供 v2 的宿主驱动生命周期、事件队列、帧校验和妆效清理状态机。小程序 binding 提供 WASM 优先、TS/JS fallback、资源缓存、内置 FaceMesh、468 点 face.glb 解析、六类上游 shader renderer、pattern/morph、微信帧格式转换和一键宿主工厂。绑定测试 23/23；上次记录的服务器回归为原生 6/6、WASM 2/2。真实微信设备仍需完成 capability report。帧校验支持 RGBA8/BGRA8，并由微信适配器把 RGB/YUV 转为 RGBA8。
 
-当前 ABI 还有两个需要尽快修正的契约问题：
-
-- 枚举只有 `lip/blush/eye/base` 四类，与产品六类妆效不一致。
-- 质感只有 `matte/glossy/shimmer/natural`，没有明确 `dewy → glossy` 和 `glitter` 的兼容规则。
-
-后续实现必须先冻结新的公共类型，再开始平台绑定，避免 WASM、TS/JS 和宿主工厂扩展出不兼容的接口。
+v1 ABI 保留四类枚举和原有质感供兼容调用。v2 ABI 定义六类妆效与 `matte`、`glossy`、`shimmer`、`glitter`，小程序 binding 将业务质感 `dewy` 归一化为 `glossy`。
 
 ## 4. 总体架构
 
@@ -546,6 +541,8 @@ manifest 建议包含：
 
 业务门面继续作为页面唯一入口，不让页面直接调用 C ABI。
 
+`dress` 微信端已通过门面接入 `createWechatMakeupSdk()`，使用 TS/JS 核心和单独的 FaceMesh SIMD WASM。拍照和私人保存已有接线，真机成图与画面对比的进度见[业务接入状态](integration/FRONTEND-SDK-STATUS.md)。
+
 建议公开给业务的接口：
 
 ```text
@@ -666,7 +663,9 @@ CI 至少包含：
 
 第一验收门槛是微信小程序单类口红闭环，不以 H5、静态图或 mock 结果替代。
 
-## 15. 分阶段实施计划
+## 15. 原分阶段实施计划
+
+当前进度以[任务清单](specs/rewrite-makeup-sdk/tasks.md)和[业务接入状态](integration/FRONTEND-SDK-STATUS.md)为准。
 
 ### 阶段 0：契约冻结
 

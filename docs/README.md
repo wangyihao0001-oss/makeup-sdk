@@ -29,7 +29,7 @@
 
 - [`integration/PRODUCT-ARCHITECTURE.md`](integration/PRODUCT-ARCHITECTURE.md)：端上试妆、业务服务和私人资产的边界。
 - [`integration/MAKEUP-UX.md`](integration/MAKEUP-UX.md)：六类妆效、页面状态和 SDK 适配门槛。
-- [`integration/FRONTEND-SDK-STATUS.md`](integration/FRONTEND-SDK-STATUS.md)：当前业务前端的 mock 边界和真实 SDK 待办。
+- [`integration/FRONTEND-SDK-STATUS.md`](integration/FRONTEND-SDK-STATUS.md) 记录 `dress` 微信端接入、构建补丁、验证结果和真机待办。
 
 ## 交接参考
 

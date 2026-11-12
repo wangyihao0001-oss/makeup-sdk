@@ -23,14 +23,15 @@ FaceMesh tracker + WebGL renderer + 资源缓存
 ## 运行时流程
 
 1. `create(config)` 选择 WASM 或 TS/JS 核心并加载版本清单。
-2. `initialize()` 加载 FaceMesh、shader、纹样和 WebGL 资源，生成能力报告。
+2. `initialize()` 加载资源清单，初始化 FaceMesh 和 WebGL renderer，读取 `face.glb` 并生成能力报告。妆效 shader 和纹样按需加载。
 3. `start()` 启动微信相机帧回调。
 4. 每帧执行追踪、参数校验和 WebGL 合成；实时帧只在设备内处理。
 5. `capture()` 等待最近一次有效渲染并导出当前合成帧。
-6. `stop()` 停止帧回调；`dispose()` 释放 tracker、WebGL、WASM 和资源缓存。
+6. `stop()` 停止帧回调。`dispose()` 调用各端口的清理方法并销毁会话，已缓存的静态文件可供后续会话复用。
 
-## 后续工作
+## `dress` 接入与验收
+
+`MakeupScreen.vue` 已通过 `createWechatSdkForCanvas()` 接入小程序相机、FaceMesh、WebGL 和成图导出。业务宿主显式选择 SDK 的 TS/JS 核心，FaceMesh 通过独立的 SIMD WASM 运行。构建时应用的兼容补丁见[业务前端与 SDK 接入状态](integration/FRONTEND-SDK-STATUS.md)。
 
 - 完成微信基础库和真机设备矩阵，记录相机、FaceMesh、WebGL、导出和上下文恢复结果。
 - 在不同设备上补充首帧、持续帧率、内存和失败恢复基线。
-- 将业务页面从 mock capture 切换到真实小程序 binding。

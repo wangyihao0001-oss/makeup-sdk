@@ -1,6 +1,6 @@
 # Design
 
-> 业务接入参考：本文从 `dress/architecture.md` 迁移，描述 SDK 与业务服务、相机帧和私人资产的边界。产品仓库中的 `Agent.md` 等路径仍以 `dress` 为来源。
+> 本文保留从 `dress/architecture.md` 迁移的原始设计，描述 SDK 与业务服务、相机帧和私人资产的边界。产品仓库中的 `Agent.md` 等路径仍以 `dress` 为来源。实际接入与静态资源分发见[业务接入状态](FRONTEND-SDK-STATUS.md)。
 
 ## Context
 

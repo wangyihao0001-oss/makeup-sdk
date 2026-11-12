@@ -17,7 +17,11 @@ bash -c 'cd bindings/miniprogram && npm pack --dry-run'
 
 绑定测试 23/23。上次服务器回归基线：原生 CTest 6/6、WASM CTest 2/2。npm 代码包应包含
 `dist/makeup_sdk_core.wasm`、两个 manifest、`src/openmakeup-webgl-renderer.js` 和
-`src/wechat-adapters.js`。FaceMesh、模型、着色器和纹样由 `npm run pack:assets` 打成独立静态资源包，上传到对象存储；不要放进小程序代码包。CDN 对 `.wasm` 和 `.js` 开启 gzip 或 brotli。
+`src/wechat-adapters.js`。FaceMesh、模型、着色器和纹样通过 `npm --prefix bindings/miniprogram run pack:assets` 生成独立静态资源包。将解包后的文件部署到对象存储的静态资源前缀，CDN 对远程 `.wasm` 和 `.js` 开启 gzip 或 brotli。
+
+## `dress` 微信小程序
+
+`dress/miniprogram` 从相邻 SDK 仓库的 `release/` 目录安装 `0.1.0` npm tarball。`npm run build:mp-weixin:sdk` 会先运行 `prepare:mp-weixin`，准备 FaceMesh 运行时并给已安装的 SDK 应用业务侧兼容补丁。FaceMesh SIMD `.wasm.br` 随微信小程序打包，模型数据、网格、shader 和纹样通过 `VITE_MAKEUP_ASSETS_BASE_URL` 加载。业务构建和回归的当前基线见[接入状态](integration/FRONTEND-SDK-STATUS.md)。
 
 ## 版本
 

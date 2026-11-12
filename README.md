@@ -2,7 +2,7 @@
 
 基于 OpenMakeupSDK 重写的微信小程序试妆 SDK 项目。本项目仅适配微信小程序。
 
-当前版本包含 C++17 共享核心、稳定 C ABI、standalone WASM 构建和可发布的小程序 JS/TS binding。小程序包内置 FaceMesh 资源、468 点网格解析、六类妆效 shader、WASM loader、微信相机帧/纹理/资源适配器和一键宿主工厂。
+当前版本包含 C++17 共享核心、稳定 C ABI、standalone WASM 构建和可发布的小程序 JS/TS binding。npm 代码包提供 FaceMesh 追踪适配、468 点网格解析、WebGL 渲染器、WASM loader、微信相机帧、纹理和资源适配器，以及一键宿主工厂。FaceMesh 运行时、人脸模型、六类妆效 shader 和纹样通过独立静态资源包交付。
 
 ## 目录
 
@@ -46,7 +46,7 @@ v2 的 C++ 端口契约位于 `core/include/makeup_sdk/makeup_sdk_v2_ports.h`，
 版本校验和 `dewy → glossy` 质感归一化。小程序 binding 已提供同语义的 TS/JS fallback
 和可校验的 WASM loader；`runtime: 'auto'` 在 WASM 加载失败时记录原因并降级 TS/JS，
 `runtime: 'wasm'` 会直接返回加载错误。完整 WebGL renderer 使用上游 `face.glb`、UV
-通道和 shader；只有真实相机、FaceMesh、WebGL、资源和捕获能力全部初始化后才报告妆效可用。
+通道和 shader。会话初始化后按 renderer 声明报告妆效支持，实机表现见设备清单。
 
 ## 发布产物
 
@@ -61,5 +61,5 @@ WASM/npm 包、SHA256SUMS、兼容性清单和性能报告。Linux/WASM/Node 构
 - 核心校验帧尺寸、像素格式、数据长度、方向、镜像和追踪置信度；微信适配器额外支持 RGB/YUV 帧转 RGBA8。
 - `createWechatMakeupSdk()` 自动组装相机、资源、纹理、FaceMesh tracker、WebGL renderer 和 SDK session。
 - 上游六类妆效、pattern 查询、morph、wireframe 和 blur 已完成代码级移植；真实微信设备的性能、GPU 和捕获结果仍待验收。
-- 业务页面仍需接入真实页面生命周期和保存流程；实时帧只在设备侧处理，不上传。
+- `dress` 的微信试妆页已接入真实 SDK，页面后台和离开时释放相机与渲染资源，拍照结果可进入私人保存流程。实时帧留在设备侧，用户主动保存时才上传成图。构建补丁和真机验收进度见[业务前端与 SDK 接入状态](docs/integration/FRONTEND-SDK-STATUS.md)。
 

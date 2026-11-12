@@ -1,37 +1,30 @@
 # 业务前端与 SDK 接入状态
 
-来源：`dress/docs/FRONTEND.md` 第 5 节及 `dress/研发分工/前端研发执行文档.md`。迁移日期：2026-10-23。
+核对日期为 2026-11-12。代码基线为 `dress` 的 `1c84cb5` 和 `makeup-sdk` 的 `ae33870`（SDK `0.1.0`）。
 
-## SDK 当前状态（2026-10-26）
+## 微信试妆页已接入 SDK
 
-SDK 已从 mock/口红最小 renderer 进入独立小程序 binding 阶段：不依赖外部
-OpenMakeupSDK。npm 代码包只包含 JS/TS binding、核心 WASM、资源清单和微信宿主工厂 `createWechatMakeupSdk()`。FaceMesh SIMD 运行时、468 点网格、六类妆效 shader 和 73 个纹样放在独立静态资源包，按清单下载到微信用户目录。绑定测试 23/23。上次记录的服务器回归为原生 CTest 6/6、WASM CTest 2/2。
+`dress/miniprogram/src/components/MakeupScreen.vue` 在微信环境默认选择 SDK。页面通过 `WechatMakeupEngine` 和 `createWechatSdkForCanvas()` 把微信相机、FaceMesh、WebGL 画布和图片导出接到 `createWechatMakeupSdk()`。`mock` 仍可通过 `VITE_MAKEUP_ENGINE=mock` 显式启用，其他环境默认走 `unsupported`。
 
-当前 SDK 代码已覆盖相机帧归一化、内置 FaceMesh tracker、WebGL 网格渲染、pattern/morph、
-WASM/TS-JS fallback、捕获和释放。真实微信设备的基础库、GPU、FaceMesh 输入、持续帧率、
-内存和 `canvasToTempFilePath` 结果尚未登记，因此不能把服务器合同测试当作真机通过。
+- `engines.ts` 消费 SDK 的单人脸、无人脸和多人脸状态。换妆使用 SDK 返回的稳定纹样 ID，产品 `eyeline` 在引擎内转为 `eyeliner`，水光 `dewy` 由 SDK 归一化为 `glossy`。
+- 页面在单人脸状态下调用 SDK 拍摄。业务宿主可将 WebGL 合成像素通过 2D 离屏画布导出为临时文件。页面隐藏或卸载时会销毁 SDK 会话，微信适配层保留共享 FaceMesh 实例供后续会话复用。
+- 页面从六类入口进入试妆镜，拍摄后冻结参数、SDK 版本和清单版本。用户主动保存才上传 `private_makeup_result`，保存重试复用已上传的资产和 `saveRequestId`，并检查登录账号。实时相机帧留在设备侧。
+- 前后摄像头按钮已绑定原生相机组件的 `device-position`，实际切换待真机验证。按住对比目前只切换页面标签，切换实际原始画面和合成画面的逻辑仍待实现。
 
-## 当前业务流程
+## 代码包、构建和静态资源
 
-业务侧已有 M01 六类入口 → M02/M03 镜面 → M04 快照 → 按需登录保存 → M05 私人记录的流程。后台/离开释放、冻结参数和 `saveRequestId` 去重已有实现；保存重试复用已完成上传和请求 ID，并检查所属账号。
+`dress/miniprogram/package.json` 依赖相邻 `makeup-sdk/release/` 目录的 `wangyihao0001-makeup-sdk-miniprogram-0.1.0.tgz`。微信构建前运行 `prepare:mp-weixin`，由 `scripts/prepare-makeup-sdk-assets.mjs` 修补已安装 SDK 的相机帧保留、追踪状态、预览和 WebGL 渲染，并生成业务侧 FaceMesh 运行时代码。这些构建补丁中还有部分未合入 SDK `0.1.0`。
 
-## 业务前端当前 mock 边界
+`dress` 明确使用 `runtime: 'ts-js'` 运行 SDK 会话。人脸追踪单独使用 FaceMesh SIMD WASM，构建时将 `.wasm.br` 放入微信小程序包，模型数据、网格、shader 和纹样使用 `VITE_MAKEUP_ASSETS_BASE_URL` 配置的静态资源前缀。SDK 的 npm 包包含 JS/TS binding、核心 WASM 和资源清单。独立静态资源包的打包与归档见[发布流程](../RELEASE.md)。
 
-- `MockMakeupEngine.apply()` 不渲染妆效，纹样目录为合成数据；unsupported 不初始化相机、不转云端。
-- 当前业务页面仍使用 mock 引擎；SDK 已有真实帧、追踪和渲染链路，但尚未接入页面生命周期。
-- 页面的人脸状态仍来自开发测试状态；SDK 已能返回无人脸、多人脸和追踪错误，页面尚未消费这些真实事件。
-- 页面 `capture()` 仍返回静态示例图；SDK `capture()` 已等待最近有效渲染帧并通过微信导出回调生成结果。
-- 示例快照和参数留在会话内存，主动保存才上传 `private_makeup_result`；列表、详情、删除调用业务 API。该流程用于业务联调，不能验收 AR 能力。
+## 回归与真机验收
 
-## 接入待办
+| 检查 | 当前结果 |
+| --- | --- |
+| SDK 本地回归 | 小程序 binding 测试 23/23，含仓库现有 WASM 的加载和生命周期。C/C++ 重新编译后运行的 5 项测试全部通过。 |
+| `dress` 试妆回归 | 临时目录按微信构建流程准备依赖后，试妆、预览、FaceMesh 运行时和微信资源四组测试通过 38/38。直接使用未准备的 SDK 依赖时，5 项测试失败，涉及相机帧、追踪状态和预览。 |
+| 微信真机 | [设备清单](../compatibility/devices.yaml)仍为 `pending`。实体设备型号、微信基础库、首帧时间、持续帧率、内存和导出结果待记录。 |
 
-1. 将业务页面接入 `createWechatMakeupSdk()`，提供页面 canvas、FaceMesh script/canvas loader 和导出回调。
-2. 在微信小程序验证相机帧 → 人脸关键点 → WebGL 合成 → 当前帧导出。
-3. 将产品 `dewy` 映射到 SDK `glossy`，所有类别使用稳定纹样 ID，不以展示排序作为标识。
-4. 将异步资源加载、连续切换竞态、拍摄等待和失败恢复纳入页面状态模型。
-5. 记录镜像坐标、颜色空间、输出方向、镜头切换、资源释放和微信设备性能结果。
+第一项验收是在微信真机授权相机、稳定跟踪单人脸、实时上口红、导出合成帧并退出试妆。记录设备和构建版本，复查授权拒绝、资源失败与恢复。之后验证其他妆效、镜头切换、画面对比，以及私人保存、重试和删除。
 
-上游 OpenMakeupSDK 已固定为 `12c5a8023aab0fcec7eef4fbdc0d1a29cf9989dd`，许可证和资源清单见
-`bindings/miniprogram/UPSTREAM.md`。第一验收门槛仍是微信真实设备上的单类口红闭环，
-服务器合同测试、静态图和 H5 演示不能替代真机证据。
-
+源码入口位于 `dress/miniprogram/src/components/MakeupScreen.vue`、`dress/miniprogram/src/makeup/` 和 `dress/miniprogram/scripts/prepare-makeup-sdk-assets.mjs`。上游提交、许可和资源清单见 [UPSTREAM.md](../../bindings/miniprogram/UPSTREAM.md)。

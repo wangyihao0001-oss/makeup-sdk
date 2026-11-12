@@ -2,7 +2,9 @@
 
 正式发布使用 `vX.Y.Z` tag。CI 在阿里云服务器构建并验证 C++ 核心、WASM 和小程序 npm 包，再生成 `SHA256SUMS`、兼容性清单和性能报告，最后创建 GitHub Release。
 
-第一阶段不自动发布到 npm/Maven registry；npm/Maven 元数据和本地包已准备好，后续可独立增加发布 job。
+当前 CI 创建 GitHub Release，npm registry 发布仍为独立操作。`dress` 当前通过本地 tarball 安装 SDK，见[业务接入状态](integration/FRONTEND-SDK-STATUS.md)。
+
+独立静态资源包由 `npm --prefix bindings/miniprogram run pack:assets` 手动生成。当前 CI 归档静态资源清单，独立资源 tarball 和 CDN 部署仍走手动流程。构建和部署路径见[构建说明](BUILDING.md)。
 
 发布前必须确认：
 

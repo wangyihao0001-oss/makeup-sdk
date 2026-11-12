@@ -8,7 +8,7 @@
 运行时默认是 `auto`：按 `core` → `wasmFactory` → 内置 loader 的顺序尝试 WASM 核心，
 加载失败后记录 `wasmLoadStatus` 和原因，再使用同一套语义的 TS/JS fallback。
 `runtime: 'wasm'` 可用于强制诊断，加载失败不会降级；`runtime: 'ts-js'` 可用于开发联调。
-只有四个端口全部初始化成功时，能力报告才会把 `lipstick` 标记为支持。
+会话初始化成功后，能力报告根据 renderer 声明的类别标记妆效支持。
 
 可发布 WASM 产物位于 `dist/makeup_sdk_core.wasm`，对应的 `dist/manifest.json` 固定
 SDK、API、WASM、资源清单版本、文件大小、SHA-256 和必需导出函数。使用内置 loader
@@ -22,14 +22,16 @@ morph targets，在对应妆效第一次绘制时编译上游 shader，按 FaceM
 颜色、finish、morph、wireframe、blur 和捕获。它要求宿主提供 `loadAsset`（微信端可用
 `createWechatOpenMakeupAssetLoader()`）以及 WebGL canvas，通过
 `canvasToTempFilePath` 导出当前帧。上游 OpenMakeupSDK 的模型、shader、纹样和 FaceMesh 资源位于 `assets/`，移植来源和固定提交见 `UPSTREAM.md`；
-`dist/openmakeup-assets.manifest.json` 记录纹样、模型、shader 和 SIMD FaceMesh 文件的版本、SHA-256 和加载分组。这些文件不打进小程序代码包，也不在 npm 包的 `files` 里。
+`dist/openmakeup-assets.manifest.json` 记录纹样、模型、shader 和 SIMD FaceMesh 文件的版本、SHA-256 和加载分组。资源文件通过独立静态资源包分发，npm 代码包包含清单。
 
 真实微信项目需要把小程序 camera、FaceMesh、WebGL canvas 和临时文件导出 API 通过
 `src/wechat-adapters.js` 适配到这些端口；模块加载时不会读取 `wx`、`window` 或 `document`。
 
-`createWechatMakeupSdk({ assetsBaseUrl })` 从静态资源前缀加载 FaceMesh、模型和妆效资源。远程地址会先读取 `openmakeup-assets.manifest.json`，再按 SHA-256 缓存到微信用户目录。FaceMesh 在创建会话时下载；`face.glb`、着色器和纹样在对应妆效第一次绘制时下载。CDN 需要对 `.wasm` 和 `.js` 开启 gzip 或 brotli。宿主需提供可执行 WASM SIMD 的基础库。
+`createWechatMakeupSdk({ assetsBaseUrl })` 使用静态资源前缀加载模型和妆效资源，也可为默认 FaceMesh 适配器加载运行资源。使用远程地址时会先尝试读取 `openmakeup-assets.manifest.json`，可用时按 SHA-256 缓存到微信用户目录。`face.glb` 在 renderer 初始化时加载，着色器和纹样按妆效加载。CDN 需要对远程 `.wasm` 和 `.js` 开启 gzip 或 brotli。宿主需提供可执行 WASM SIMD 的基础库。
 
 若页面没有预加载 `FaceMesh` 类，只需提供 `faceMeshScriptLoader`；若运行时不能直接接收 RGBA canvas，则提供 `faceMeshCanvasFactory`。业务项目不需要引用 OpenMakeupSDK。资源包用 `npm run pack:assets` 生成，上传后把目录地址传给 `assetsBaseUrl`。
+
+`dress` 接入时提供自己的 FaceMesh 类，构建阶段将 SIMD `.wasm.br` 放入微信小程序包，模型数据和妆效资源通过 `assetsBaseUrl` 加载。实现和验证基线见[业务接入状态](../../docs/integration/FRONTEND-SDK-STATUS.md)。
 
 典型接入方式是把资源端口的 `loadAsset` 传给 renderer，再用宿主 canvas 的图片工厂提供
 `loadTexture`：
